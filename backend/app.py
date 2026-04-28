@@ -388,6 +388,10 @@ def show_production_view():
 def calendar_view():
     return render_template('calendar.html')
 
+@app.route('/evolve')
+def evolve_view():
+    return render_template('evolve.html')
+
 @app.route('/legacy-expansion')
 def legacy_expansion_view():
     """Dashboard for feature sets added in Steps 126-212."""
