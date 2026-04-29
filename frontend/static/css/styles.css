@@ -2755,3 +2755,42 @@
         margin-bottom: 1rem;
     }
 }
+/* Global visibility guard: prevent white text on white/light backgrounds */
+.bg-white,
+.bg-light,
+.card.bg-white,
+.card.bg-light,
+[style*="background: white"],
+[style*="background-color: white"],
+[style*="background:#fff"],
+[style*="background: #fff"],
+[style*="background-color:#fff"],
+[style*="background-color: #fff"] {
+    color: #212529 !important;
+}
+
+.bg-white .text-white,
+.bg-light .text-white,
+.card.bg-white .text-white,
+.card.bg-light .text-white,
+[style*="background: white"] .text-white,
+[style*="background-color: white"] .text-white,
+[style*="background:#fff"] .text-white,
+[style*="background: #fff"] .text-white,
+[style*="background-color:#fff"] .text-white,
+[style*="background-color: #fff"] .text-white {
+    color: #212529 !important;
+}
+
+.bg-white a,
+.bg-light a,
+.card.bg-white a,
+.card.bg-light a,
+[style*="background: white"] a,
+[style*="background-color: white"] a,
+[style*="background:#fff"] a,
+[style*="background: #fff"] a,
+[style*="background-color:#fff"] a,
+[style*="background-color: #fff"] a {
+    color: #0d6efd;
+}
