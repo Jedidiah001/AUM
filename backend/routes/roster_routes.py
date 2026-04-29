@@ -52,7 +52,37 @@ def api_get_wrestler(wrestler_id):
     if not wrestler:
         return jsonify({'error': 'Wrestler not found'}), 404
     
-    return jsonify(wrestler.to_dict())
+    wrestler_data = wrestler.to_dict()
+    title_reigns = []
+
+    for championship in universe.championships:
+        history = getattr(championship, 'history', []) or []
+        for reign in history:
+            if getattr(reign, 'wrestler_id', None) != wrestler_id:
+                continue
+
+            title_reigns.append({
+                'title_id': getattr(championship, 'id', None),
+                'title_name': getattr(championship, 'name', 'Unknown Championship'),
+                'won_at_show_name': getattr(reign, 'won_at_show_name', 'Unknown Event'),
+                'won_date_year': getattr(reign, 'won_date_year', None),
+                'won_date_week': getattr(reign, 'won_date_week', None),
+                'is_current_reign': (
+                    getattr(championship, 'current_holder_id', None) == wrestler_id
+                    and not getattr(championship, 'is_vacant', False)
+                )
+            })
+
+    title_reigns.sort(
+        key=lambda r: (
+            r.get('won_date_year') if r.get('won_date_year') is not None else -1,
+            r.get('won_date_week') if r.get('won_date_week') is not None else -1
+        ),
+        reverse=True
+    )
+    wrestler_data['title_reigns'] = title_reigns
+
+    return jsonify(wrestler_data)
 
 
 @roster_bp.route('/api/stats/roster-summary')

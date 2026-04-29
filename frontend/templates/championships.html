@@ -1877,11 +1877,13 @@
         
         var stats = null;
         var extended = null;
+        var calendarInfo = null;
         
         try {
             var responses = await Promise.all([
                 fetch('/api/championships/' + champId + '/statistics'),
-                fetch('/api/championships/' + champId + '/extended')
+                fetch('/api/championships/' + champId + '/extended'),
+                fetch('/api/calendar/current')
             ]);
             
             var statsData = await responses[0].json();
@@ -1889,6 +1891,9 @@
             
             var extData = await responses[1].json();
             if (extData.success) extended = extData.championship;
+
+            var calendarData = await responses[2].json();
+            if (calendarData.success) calendarInfo = calendarData;
         } catch (error) {
             console.error('Error loading details:', error);
         }
@@ -1940,16 +1945,42 @@
         
         var historyHtml = '';
         if (champ.history && champ.history.length > 0) {
+            var currentYear = calendarInfo ? calendarInfo.current_year : null;
+            var currentWeek = calendarInfo ? calendarInfo.current_week : null;
+            var computeCurrentDays = function(reign) {
+                if (currentYear == null || currentWeek == null || reign.won_date_year == null || reign.won_date_week == null) {
+                    return null;
+                }
+                var weeksHeld = ((currentYear - reign.won_date_year) * 52) + (currentWeek - reign.won_date_week);
+                return Math.max(0, weeksHeld * 7);
+            };
+            var formatWonAt = function(reign) {
+                var showName = reign.won_at_show_name || 'Unknown Event';
+                if (reign.won_date_year == null || reign.won_date_week == null) return showName;
+                return showName + ' (Year ' + reign.won_date_year + ', Week ' + reign.won_date_week + ')';
+            };
+
             historyHtml = '<h6 class="mt-3">Recent Title History</h6>' +
                 '<div class="table-responsive"><table class="table table-sm"><thead><tr>' +
                 '<th>Champion</th><th>Won At</th><th>Days Held</th></tr></thead><tbody>';
             var recentReigns = champ.history.slice(-5).reverse();
             recentReigns.forEach(function(reign) {
                 var rowClass = reign.is_interim ? 'table-info' : '';
+                var isCurrentHolder = !champ.is_vacant &&
+                    String(champ.current_holder_id || '') === String(reign.wrestler_id || '');
+                var daysHeldText = '';
+                if (reign.days_held != null && reign.days_held !== '') {
+                    daysHeldText = reign.days_held + ' days';
+                } else if (isCurrentHolder) {
+                    var currentDays = computeCurrentDays(reign);
+                    daysHeldText = currentDays == null ? 'Current' : 'Current (' + currentDays + ' days)';
+                } else {
+                    daysHeldText = '—';
+                }
                 historyHtml += '<tr class="' + rowClass + '">' +
                     '<td>' + reign.wrestler_name + (reign.is_interim ? ' <span class="badge bg-info">Interim</span>' : '') + '</td>' +
-                    '<td>' + reign.won_at_show_name + '</td>' +
-                    '<td>' + (reign.days_held || '<em>Current</em>') + '</td>' +
+                    '<td>' + formatWonAt(reign) + '</td>' +
+                    '<td>' + daysHeldText + '</td>' +
                     '</tr>';
             });
             historyHtml += '</tbody></table></div>';
