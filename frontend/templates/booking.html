@@ -1121,19 +1121,20 @@ function populateMatchTypes(genderDivision) {
 
 function filterWrestlersByGender(genderDivision) {
     availableWrestlers = [];
+    var isCrossBrandShow = currentShowDraft && (currentShowDraft.brand === 'Cross-Brand');
     
     if (genderDivision === 'intergender') {
         // For intergender, we need both male and female wrestlers
         availableWrestlers = Object.values(allWrestlers).filter(function(w) {
             return w.status === 'active' && 
-                   w.current_brand === currentShowDraft.brand &&
+                   (isCrossBrandShow || w.current_brand === currentShowDraft.brand) &&
                    (w.gender === 'male' || w.gender === 'female');
         });
     } else {
         // Filter by specific gender
         availableWrestlers = Object.values(allWrestlers).filter(function(w) {
             return w.status === 'active' && 
-                   w.current_brand === currentShowDraft.brand &&
+                   (isCrossBrandShow || w.current_brand === currentShowDraft.brand) &&
                    w.gender === genderDivision;
         });
     }
