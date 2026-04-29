@@ -234,6 +234,13 @@
                     <small class="text-muted">Optional: Pre-determine the winner</small>
                 </div>
                 
+
+                <div class="mb-3" id="rumbleBookingDiv" style="display:none;">
+                    <label class="form-label fw-bold text-primary"><i class="bi bi-list-stars"></i> Rumble Booking Controls</label>
+                    <select class="form-select mb-2" id="bookedRunnerUpSelect"><option value="">-- Runner-up / Last Eliminated (Optional) --</option></select>
+                    <select class="form-select mb-2" id="bookedIronManSelect"><option value="">-- Iron Man / Lasts Longest (Optional) --</option></select>
+                    <select class="form-select" id="bookedMostElimsSelect"><option value="">-- Most Eliminations (Optional) --</option></select>
+                </div>
                 <!-- Special Match Type -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">
@@ -1170,6 +1177,7 @@ function updateMatchTypeUI() {
     if (!selectedOption || !selectedOption.value) {
         document.getElementById('wrestlerSelectionContainer').innerHTML = '';
         document.getElementById('winnerSelectionDiv').style.display = 'none';
+    document.getElementById('rumbleBookingDiv').style.display = 'none';
         return;
     }
     
@@ -1206,6 +1214,7 @@ function updateMatchTypeUI() {
     
     // Show winner selection
     document.getElementById('winnerSelectionDiv').style.display = 'block';
+    document.getElementById('rumbleBookingDiv').style.display = (matchType === 'rumble' || matchType === 'battle_royal') ? 'block' : 'none';
 }
 
 // ========================================================================
@@ -1769,6 +1778,13 @@ function confirmAddMatch() {
         if (bookedWinner) {
             newMatch.booked_winner = bookedWinner;
         }
+
+        var bookedRunnerUp = document.getElementById('bookedRunnerUpSelect').value;
+        if (bookedRunnerUp) newMatch.booked_runner_up = bookedRunnerUp;
+        var bookedIronMan = document.getElementById('bookedIronManSelect').value;
+        if (bookedIronMan) newMatch.booked_iron_man = bookedIronMan;
+        var bookedMostElims = document.getElementById('bookedMostElimsSelect').value;
+        if (bookedMostElims) newMatch.booked_most_eliminations = bookedMostElims;
         
         // Special stipulation
         var specialStip = document.getElementById('specialMatchType').value;
@@ -2326,6 +2342,9 @@ function editMatch(matchIndex) {
         // Winner
         var winnerSel = document.getElementById('bookedWinnerSelect');
         if (winnerSel) winnerSel.value = match.booked_winner || '';
+        var ruSel = document.getElementById('bookedRunnerUpSelect'); if (ruSel) ruSel.value = match.booked_runner_up || '';
+        var imSel = document.getElementById('bookedIronManSelect'); if (imSel) imSel.value = match.booked_iron_man || '';
+        var meSel = document.getElementById('bookedMostElimsSelect'); if (meSel) meSel.value = match.booked_most_eliminations || '';
 
     } catch (e) {
         console.error('Edit match failed:', e);
