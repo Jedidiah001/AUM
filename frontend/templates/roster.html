@@ -428,6 +428,14 @@
         return `<span class="badge ${badgeClass}">${injury.severity} (${injury.weeks_remaining}w)</span>`;
     }
 
+    function formatWonAtLabel(reign) {
+        const eventName = reign.won_at_show_name || 'Unknown Event';
+        const year = reign.won_date_year;
+        const week = reign.won_date_week;
+        if (year == null || week == null) return eventName;
+        return `${eventName} (Year ${year}, Week ${week})`;
+    }
+
     // Show wrestler detail modal with stats
     async function showWrestlerDetail(wrestlerId) {
         console.log('Loading wrestler detail for:', wrestlerId);
@@ -545,6 +553,21 @@
                 });
                 milestonesHTML += '</ul>';
             }
+
+            let titlesHTML = '<p class="text-muted mb-0">No title wins recorded yet.</p>';
+            const titleReigns = wrestler.title_reigns || [];
+            if (titleReigns.length > 0) {
+                titlesHTML = '<div class="table-responsive"><table class="table table-sm">' +
+                    '<thead><tr><th>Championship</th><th>Won At</th><th>Status</th></tr></thead><tbody>';
+                titleReigns.forEach(reign => {
+                    titlesHTML += '<tr>' +
+                        `<td><strong>${reign.title_name || 'Unknown Championship'}</strong></td>` +
+                        `<td>${formatWonAtLabel(reign)}</td>` +
+                        `<td>${reign.is_current_reign ? '<span class="badge bg-success">Current Champion</span>' : '<span class="badge bg-secondary">Past Reign</span>'}</td>` +
+                        '</tr>';
+                });
+                titlesHTML += '</tbody></table></div>';
+            }
             
             modalBody.innerHTML = `
                 <div class="row">
@@ -604,6 +627,13 @@
                 <div class="row mt-3">
                     <div class="col-md-12">
                         ${milestonesHTML}
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h6><i class="bi bi-trophy-fill text-warning"></i> Championship Wins</h6>
+                        ${titlesHTML}
                     </div>
                 </div>
 

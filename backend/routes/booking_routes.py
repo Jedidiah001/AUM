@@ -452,16 +452,25 @@ def run_show():
         
         # LegacyMania/Rumble Royale progression logic
         try:
-            if (show_draft.show_name or '').lower() == 'rumble royale':
+            show_name_lower = (show_draft.show_name or '').strip().lower()
+            if 'rumble royale' in show_name_lower:
                 match_lookup = {m.match_id: m for m in show_draft.matches}
+                awarded_divisions = set()
+
                 for result in show_result.match_results:
-                    if getattr(result, 'match_type', '') != 'rumble':
-                        continue
+                    result_match_type = (getattr(result, 'match_type', '') or '').lower()
                     draft_match = match_lookup.get(getattr(result, 'match_id', None))
-                    division = getattr(draft_match, 'gender_division', None) or 'male'
+                    draft_match_type = (getattr(draft_match, 'match_type', '') or '').lower()
+
+                    is_rumble = result_match_type == 'rumble' or draft_match_type == 'rumble'
+                    if not is_rumble:
+                        continue
+
+                    division = (getattr(draft_match, 'gender_division', None) or 'male').lower()
                     winner_id = getattr(result, 'winner_id', None)
-                    if winner_id:
+                    if winner_id and division not in awarded_divisions:
                         _award_rumble_opportunity(database, universe, winner_id, division, show_draft.year)
+                        awarded_divisions.add(division)
 
             if (show_draft.show_name or '').lower().startswith('legacymania'):
                 # Brand transfer: title winners move to title's home brand
@@ -583,18 +592,47 @@ def _award_rumble_opportunity(database, universe, winner_id: str, division: str,
     )
 
     c = database.conn.cursor()
-    c.execute(
+    existing = c.execute(
         """
-        INSERT INTO rumble_title_opportunities
-        (id, year, rumble_winner_id, rumble_winner_name, division, target_title_id, target_title_name, target_brand, status, storyline_text, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        SELECT id FROM rumble_title_opportunities
+        WHERE year=? AND division=?
+        ORDER BY created_at DESC LIMIT 1
         """,
-        (
-            str(_uuid.uuid4()), year, winner_id, getattr(winner, 'name', winner_id), division,
-            getattr(target_title, 'id', None), getattr(target_title, 'name', None), target_brand,
-            'pending', storyline, datetime.now().isoformat()
+        (year, division)
+    ).fetchone()
+
+    if existing:
+        c.execute(
+            """
+            UPDATE rumble_title_opportunities
+            SET rumble_winner_id=?, rumble_winner_name=?, target_title_id=?, target_title_name=?,
+                target_brand=?, status='pending', storyline_text=?, created_at=?
+            WHERE id=?
+            """,
+            (
+                winner_id,
+                getattr(winner, 'name', winner_id),
+                getattr(target_title, 'id', None),
+                getattr(target_title, 'name', None),
+                target_brand,
+                storyline,
+                datetime.now().isoformat(),
+                existing['id']
+            )
         )
-    )
+    else:
+        c.execute(
+            """
+            INSERT INTO rumble_title_opportunities
+            (id, year, rumble_winner_id, rumble_winner_name, division, target_title_id, target_title_name, target_brand, status, storyline_text, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                str(_uuid.uuid4()), year, winner_id, getattr(winner, 'name', winner_id), division,
+                getattr(target_title, 'id', None), getattr(target_title, 'name', None), target_brand,
+                'pending', storyline, datetime.now().isoformat()
+            )
+        )
     database.conn.commit()
 
 # ============================================================================
