@@ -189,6 +189,37 @@ def _ensure_tables():
             trust_impact        INTEGER NOT NULL,
             created_at          TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS pacing_sessions (
+            session_id           TEXT PRIMARY KEY,
+            show_id              TEXT NOT NULL,
+            year                 INTEGER NOT NULL,
+            week                 INTEGER NOT NULL,
+            show_type            TEXT NOT NULL,
+            brand                TEXT NOT NULL,
+            target_peaks         INTEGER NOT NULL DEFAULT 3,
+            final_grade          TEXT DEFAULT '',
+            final_crowd_energy   INTEGER DEFAULT 50,
+            peaks_hit            INTEGER DEFAULT 0,
+            status               TEXT NOT NULL DEFAULT 'draft',
+            created_at           TEXT NOT NULL,
+            updated_at           TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS pacing_session_items (
+            item_id              TEXT PRIMARY KEY,
+            session_id           TEXT NOT NULL,
+            position             INTEGER NOT NULL,
+            item_type            TEXT NOT NULL,
+            item_name            TEXT NOT NULL,
+            duration_minutes     INTEGER NOT NULL,
+            star_rating          REAL DEFAULT 0,
+            segment_type         TEXT DEFAULT '',
+            crowd_energy_before  INTEGER NOT NULL,
+            crowd_energy_after   INTEGER NOT NULL,
+            momentum_delta       INTEGER NOT NULL,
+            created_at           TEXT NOT NULL
+        );
     """)
     db.conn.commit()
     _tables_ensured = True
@@ -769,6 +800,64 @@ def api_analyze_show_pacing():
             if pacing.should_take_commercial_break():
                 pacing.take_commercial_break()
         return jsonify({"success": True, "pacing_report": pacing.to_dict()})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@show_production_bp.route('/api/show-production/pacing/session/create', methods=['POST'])
+def api_create_pacing_session():
+    try:
+        _ensure_tables()
+        year, week = _game_state()
+        cs = _universe().calendar.get_current_show()
+        data = request.get_json() or {}
+        session_id = f"pace_{uuid.uuid4().hex[:10]}"
+        show_type = data.get("show_type", getattr(cs, "show_type", "weekly_tv"))
+        brand = data.get("brand", getattr(cs, "brand", "ROC Alpha"))
+        show_id = data.get("show_id", getattr(cs, "show_id", f"show_y{year}_w{week}"))
+        now = datetime.utcnow().isoformat()
+        _db().conn.execute("""
+            INSERT INTO pacing_sessions
+            (session_id, show_id, year, week, show_type, brand, target_peaks, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)
+        """, (session_id, show_id, year, week, show_type, brand, int(data.get("target_peaks", 3)), now, now))
+        _db().conn.commit()
+        return jsonify({"success": True, "session_id": session_id})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@show_production_bp.route('/api/show-production/pacing/session/<session_id>/add-item', methods=['POST'])
+def api_add_pacing_item(session_id):
+    try:
+        _ensure_tables()
+        ShowPacingManager = _show_config('ShowPacingManager')
+        conn = _db().conn
+        s = conn.execute("SELECT * FROM pacing_sessions WHERE session_id=?", (session_id,)).fetchone()
+        if not s:
+            return jsonify({"success": False, "error": "Session not found"}), 404
+        rows = conn.execute("SELECT * FROM pacing_session_items WHERE session_id=? ORDER BY position", (session_id,)).fetchall()
+        pacing = ShowPacingManager(show_type=s['show_type'], brand=s['brand'])
+        for r in rows:
+            pacing.record_item(position=r['position'], item_type=r['item_type'], item_name=r['item_name'], duration_minutes=r['duration_minutes'], star_rating=r['star_rating'], segment_type=r['segment_type'] or None)
+            if pacing.should_take_commercial_break():
+                pacing.take_commercial_break()
+        data = request.get_json() or {}
+        pos = len(rows) + 1
+        before = int(getattr(pacing, "crowd_energy", 50))
+        pacing.record_item(position=pos, item_type=data.get("item_type", "segment"), item_name=data.get("item_name", f"Segment {pos}"), duration_minutes=int(data.get("duration_minutes", 8)), star_rating=float(data.get("star_rating", 0.0)), segment_type=data.get("segment_type"))
+        after = int(getattr(pacing, "crowd_energy", before))
+        delta = after - before
+        item_id = f"pace_item_{uuid.uuid4().hex[:10]}"
+        conn.execute("""INSERT INTO pacing_session_items
+            (item_id, session_id, position, item_type, item_name, duration_minutes, star_rating, segment_type, crowd_energy_before, crowd_energy_after, momentum_delta, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (item_id, session_id, pos, data.get("item_type", "segment"), data.get("item_name", f"Segment {pos}"), int(data.get("duration_minutes", 8)), float(data.get("star_rating", 0.0)), data.get("segment_type", ""), before, after, delta, datetime.utcnow().isoformat()))
+        conn.execute("UPDATE pacing_sessions SET updated_at=? WHERE session_id=?", (datetime.utcnow().isoformat(), session_id))
+        conn.commit()
+        return jsonify({"success": True, "item_id": item_id, "energy_before": before, "energy_after": after, "momentum_delta": delta, "pacing_report": pacing.to_dict()})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500

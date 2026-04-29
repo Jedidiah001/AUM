@@ -216,6 +216,16 @@
                                 </button>
                             </div>
                         </div>
+                        <hr>
+                        <div class="row g-2">
+                            <div class="col-md-2"><button class="btn btn-outline-primary w-100" onclick="createPacingSession()">Start Session</button></div>
+                            <div class="col-md-3"><input id="paceItemName" class="form-control" placeholder="Segment name"></div>
+                            <div class="col-md-2"><input id="paceItemType" class="form-control" placeholder="match/segment/tag/brawl/debut"></div>
+                            <div class="col-md-2"><input id="paceItemDuration" class="form-control" type="number" value="8"></div>
+                            <div class="col-md-1"><input id="paceItemRating" class="form-control" type="number" step="0.1" value="3.0"></div>
+                            <div class="col-md-2"><button class="btn btn-outline-success w-100" onclick="addPacingItem()">Add To Session</button></div>
+                        </div>
+                        <small class="text-muted d-block mt-2">Active pacing session: <span id="activePacingSession">none</span></small>
                     </div>
                 </div>
                 <div id="pacingResultSection" style="display:none;">
@@ -847,6 +857,39 @@ async function analyzePacingDemo() {
     } catch(e) { showToast(e.message, 'danger'); }
 }
 
+let activePacingSessionId = null;
+async function createPacingSession() {
+    const show_type = document.getElementById('pacingShowType').value;
+    const brand = document.getElementById('pacingBrand').value;
+    const r = await fetch('/api/show-production/pacing/session/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ show_type, brand, target_peaks: 3 })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || 'Failed to create session');
+    activePacingSessionId = d.session_id;
+    document.getElementById('activePacingSession').textContent = activePacingSessionId;
+    showToast('Pacing session created.', 'success');
+}
+
+async function addPacingItem() {
+    if (!activePacingSessionId) { showToast('Start a pacing session first.', 'warning'); return; }
+    const payload = {
+        item_name: document.getElementById('paceItemName').value || 'Unnamed Segment',
+        item_type: document.getElementById('paceItemType').value || 'segment',
+        duration_minutes: parseInt(document.getElementById('paceItemDuration').value || '8'),
+        star_rating: parseFloat(document.getElementById('paceItemRating').value || '3')
+    };
+    const r = await fetch(`/api/show-production/pacing/session/${activePacingSessionId}/add-item`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || 'Failed to add item');
+    renderPacingReport(d.pacing_report);
+    showToast(`Added. Energy ${d.energy_before} → ${d.energy_after}`, d.momentum_delta >= 0 ? 'success' : 'warning');
+}
+
 function renderPacingReport(report) {
     const gradeColors = {
         Excellent:'success',
@@ -1437,6 +1480,8 @@ window.loadHouseShowCities = loadHouseShowCities;
 window.filterSegmentTypes  = filterSegmentTypes;
 window.createCustomPPV     = createCustomPPV;
 window.bookAdvancedFeature = bookAdvancedFeature;
+window.createPacingSession = createPacingSession;
+window.addPacingItem       = addPacingItem;
 
 // Run on load
 loadProductionDashboard();
