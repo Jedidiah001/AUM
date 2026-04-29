@@ -113,6 +113,22 @@
     </div>
 </div>
 
+
+<!-- LegacyMania Control Panel -->
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card border-warning shadow-sm">
+      <div class="card-header bg-warning-subtle d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-stars"></i> LegacyMania Control Panel</h5>
+        <button class="btn btn-sm btn-outline-dark" onclick="loadLegacyManiaPanel()">Refresh</button>
+      </div>
+      <div class="card-body">
+        <div class="small text-muted mb-2">Assign Men's and Women's Rumble winners to LegacyMania Night 1 or Night 2 world-title challenges.</div>
+        <div id="legacyManiaPanel">Loading LegacyMania opportunities...</div>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Show Card Display -->
 <div class="row">
     <div class="col-md-12">
@@ -436,6 +452,7 @@
             renderShowInfo(currentShowDraft);
             renderProductionPlan(productionPlan);
             renderFullCard();
+            await loadLegacyManiaPanel();
 
             // Reset edit state if modals are dismissed
             try {
@@ -2659,6 +2676,7 @@ function generateSegments() {
             });
 
             renderFullCard();
+            await loadLegacyManiaPanel();
             showToast('Generated ' + data.segments.length + ' segments', 'success');
         } else {
             throw new Error(data.error || 'Failed to generate segments');
@@ -2700,6 +2718,7 @@ function regenerateCard() {
             renderShowInfo(currentShowDraft);
             renderProductionPlan(productionPlan);
             renderFullCard();
+            await loadLegacyManiaPanel();
             
             showToast('Card regenerated successfully!', 'success');
         } else {
@@ -3084,6 +3103,62 @@ function showToast(message, type) {
 // EXPORT GLOBAL FUNCTIONS
 // ========================================================================
 
+
+
+    async function loadLegacyManiaPanel() {
+        var container = document.getElementById('legacyManiaPanel');
+        if (!container) return;
+        try {
+            var resp = await fetch('/api/booking/legacy/rumble-opportunities');
+            var data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load opportunities');
+            var rows = data.opportunities || [];
+            if (!rows.length) {
+                container.innerHTML = '<div class="alert alert-secondary mb-0">No Rumble winners recorded yet. Run Rumble Royale first.</div>';
+                return;
+            }
+
+            var worldTitles = Object.values(allTitles).filter(function(t){
+                var n = (t.name || '').toLowerCase();
+                return n.indexOf('world') !== -1 && (n.indexOf('women') !== -1 || n.indexOf('heavyweight') !== -1 || n.indexOf('championship') !== -1);
+            });
+
+            var html = '<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Winner</th><th>Division</th><th>Target Title</th><th>Legacy Night</th><th>Status</th><th></th></tr></thead><tbody>';
+            rows.forEach(function(r){
+                var opts = worldTitles
+                  .filter(function(t){ return t.division === r.division; })
+                  .map(function(t){ return '<option value="'+t.id+'" '+(r.target_title_id===t.id?'selected':'')+'>'+t.name+' ('+t.current_brand+')</option>'; }).join('');
+                html += '<tr>' +
+                    '<td><strong>'+ (r.rumble_winner_name || r.rumble_winner_id) +'</strong></td>' +
+                    '<td>'+ r.division +'</td>' +
+                    '<td><select class="form-select form-select-sm" id="legacy_title_'+r.id+'"><option value="">Choose...</option>'+opts+'</select></td>' +
+                    '<td><select class="form-select form-select-sm" id="legacy_night_'+r.id+'"><option>Night 1</option><option>Night 2</option></select></td>' +
+                    '<td><span class="badge bg-info">'+(r.status||'pending')+'</span></td>' +
+                    '<td><button class="btn btn-sm btn-primary" onclick="assignLegacyOpportunity(&quot;'+r.id+'&quot;)">Assign</button></td>' +
+                    '</tr>';
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = '<div class="alert alert-danger mb-0">'+e.message+'</div>';
+        }
+    }
+
+    async function assignLegacyOpportunity(id) {
+        var titleId = document.getElementById('legacy_title_'+id).value;
+        var night = document.getElementById('legacy_night_'+id).value;
+        if (!titleId) return showToast('Select a title first', 'warning');
+        var t = allTitles[titleId] || {};
+        var resp = await fetch('/api/booking/legacy/rumble-opportunities/'+id+'/assign', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({target_title_id:titleId, target_title_name:t.name || '', target_brand:t.current_brand || '', legacy_night: night, status:'assigned'})
+        });
+        var data = await resp.json();
+        if (!data.success) return showToast(data.error || 'Failed to assign', 'danger');
+        showToast('LegacyMania challenge assigned', 'success');
+        loadLegacyManiaPanel();
+    }
+
 window.openAddMatch = openAddMatch;
 window.confirmAddMatch = confirmAddMatch;
 window.confirmAddSegment = confirmAddSegment;
@@ -3110,9 +3185,8 @@ window.generateSegments = generateSegments;
     
     window.loadBookingView = loadBookingView;
     window.confirmAddMatch = confirmAddMatch;
-    window.openAddMatch = openAddMatch;
-    window.regenerateCard = regenerateCard;
-    window.clearAllItems = clearAllItems;
+    
+
     window.confirmAddMatch = confirmAddMatch;
     window.renderFullCard = renderFullCard;
     

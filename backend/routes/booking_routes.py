@@ -714,6 +714,32 @@ def get_rumble_opportunities():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@booking_bp.route('/legacy/rumble-opportunities/<opp_id>/assign', methods=['POST'])
+def assign_rumble_opportunity(opp_id):
+    try:
+        database = get_database()
+        payload = request.get_json() or {}
+        target_title_id = payload.get('target_title_id')
+        target_title_name = payload.get('target_title_name')
+        target_brand = payload.get('target_brand')
+        legacy_night = payload.get('legacy_night')
+        status = payload.get('status', 'assigned')
+
+        _ensure_legacy_tables(database)
+        database.conn.cursor().execute(
+            """
+            UPDATE rumble_title_opportunities
+            SET target_title_id=?, target_title_name=?, target_brand=?, status=?, storyline_text = COALESCE(storyline_text,'') || ?, created_at=created_at
+            WHERE id=?
+            """,
+            (target_title_id, target_title_name, target_brand, status, f' Assigned to {legacy_night} challenge.', opp_id)
+        )
+        database.conn.commit()
+        return jsonify({'success': True, 'id': opp_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ============================================================================
 # GET/DELETE SHOW DRAFT
 # ============================================================================
