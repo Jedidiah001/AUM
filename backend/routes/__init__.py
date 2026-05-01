@@ -232,4 +232,5 @@ __all__ = [
     'world_feed_bp',
     'history_hub_bp',
     'booker_bp',
+    'developmental_bp',
 ]
