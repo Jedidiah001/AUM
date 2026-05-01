@@ -79,8 +79,11 @@
         <!-- Developmental Roster Tab -->
         <div class="tab-pane fade show active" id="roster-tab">
             <div class="card">
-                <div class="card-header bg-dark text-white">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-table"></i> Developmental Roster</h5>
+                    <button class="btn btn-sm btn-primary" onclick="showAddWrestlerModal()">
+                        <i class="bi bi-person-plus-fill"></i> Add Wrestler
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -108,6 +111,56 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Tab -->
+        <div class="tab-pane fade" id="training-tab">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Training Program</h5>
+                    <button class="btn btn-sm btn-light" onclick="loadTrainingProgram()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Wrestler</label>
+                            <select class="form-select" id="trainingWrestlerSelect" onchange="loadWrestlerTrainingPlan()">
+                                <option value="">-- Choose a wrestler --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Training Focus</label>
+                            <select class="form-select" id="trainingFocus">
+                                <option value="in_ring">In-Ring Skills</option>
+                                <option value="mic_work">Mic Work/Promo</option>
+                                <option value="character">Character Development</option>
+                                <option value="psychology">Match Psychology</option>
+                                <option value="selling">Selling/Storytelling</option>
+                                <option value="conditioning">Physical Conditioning</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-success w-100" onclick="runTrainingSession()">
+                                <i class="bi bi-play-fill"></i> Run Training Session
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="trainingProgressArea" class="mt-4" style="display:none;">
+                        <h6>Current Training Progress</h6>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div id="trainingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p id="trainingProgressText" class="text-muted small">No active training session</p>
+                    </div>
+                    
+                    <div id="wrestlerTrainingStats" class="mt-4">
+                        <!-- Will be populated dynamically -->
                     </div>
                 </div>
             </div>
@@ -245,6 +298,99 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="executeCallUp()">
                     <i class="bi bi-arrow-up-circle"></i> Execute Call-Up
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Wrestler Modal -->
+<div class="modal fade" id="addWrestlerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-person-plus-fill"></i> Add Wrestler to Developmental</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWrestlerForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="wrestlerFirstName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="wrestlerLastName" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Ring Name (Optional)</label>
+                            <input type="text" class="form-control" id="wrestlerRingName">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Age</label>
+                            <input type="number" class="form-control" id="wrestlerAge" min="18" max="40" value="22" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" id="wrestlerGender" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nationality</label>
+                            <input type="text" class="form-control" id="wrestlerNationality" value="USA">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Hometown</label>
+                            <input type="text" class="form-control" id="wrestlerHometown" placeholder="e.g., Louisville, KY">
+                        </div>
+                    </div>
+                    <hr>
+                    <h6>Initial Skills (0-100)</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">In-Ring Skill</label>
+                            <input type="number" class="form-control" id="skillInRing" min="30" max="85" value="55">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mic Work</label>
+                            <input type="number" class="form-control" id="skillMicWork" min="30" max="85" value="50">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Character</label>
+                            <input type="number" class="form-control" id="skillCharacter" min="30" max="85" value="55">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Psychology</label>
+                            <input type="number" class="form-control" id="skillPsychology" min="30" max="85" value="50">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Selling</label>
+                            <input type="number" class="form-control" id="skillSelling" min="30" max="85" value="55">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Conditioning</label>
+                            <input type="number" class="form-control" id="skillConditioning" min="50" max="90" value="70">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="wrestlerNotes" rows="2" placeholder="Additional notes about the prospect..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddWrestler()">
+                    <i class="bi bi-check-circle"></i> Add to Developmental
                 </button>
             </div>
         </div>
@@ -665,6 +811,177 @@ async function recordDefense() {
         }
     } catch (error) {
         alert(`Error: ${error.message}`);
+    }
+}
+
+function showAddWrestlerModal() {
+    new bootstrap.Modal(document.getElementById('addWrestlerModal')).show();
+}
+
+async function submitAddWrestler() {
+    const firstName = document.getElementById('wrestlerFirstName').value;
+    const lastName = document.getElementById('wrestlerLastName').value;
+    const ringName = document.getElementById('wrestlerRingName').value;
+    const age = parseInt(document.getElementById('wrestlerAge').value);
+    const gender = document.getElementById('wrestlerGender').value;
+    const nationality = document.getElementById('wrestlerNationality').value;
+    const hometown = document.getElementById('wrestlerHometown').value;
+    
+    const skills = {
+        in_ring: parseInt(document.getElementById('skillInRing').value),
+        mic_work: parseInt(document.getElementById('skillMicWork').value),
+        character: parseInt(document.getElementById('skillCharacter').value),
+        psychology: parseInt(document.getElementById('skillPsychology').value),
+        selling: parseInt(document.getElementById('skillSelling').value),
+        conditioning: parseInt(document.getElementById('skillConditioning').value)
+    };
+    
+    const notes = document.getElementById('wrestlerNotes').value;
+    
+    if (!firstName || !lastName) {
+        alert('Please enter first and last name');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/developmental/wrestler/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName,
+                ring_name: ringName || null,
+                age: age,
+                gender: gender,
+                nationality: nationality,
+                hometown: hometown,
+                skills: skills,
+                notes: notes
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${result.message}`);
+            bootstrap.Modal.getInstance(document.getElementById('addWrestlerModal')).hide();
+            // Reset form
+            document.getElementById('addWrestlerForm').reset();
+            loadDevelopmentalRoster();
+        } else {
+            alert(`❌ Error: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// Training functions
+async function loadTrainingProgram() {
+    try {
+        const response = await fetch('/api/developmental/roster');
+        if (!response.ok) throw new Error('Failed to load roster');
+        
+        const data = await response.json();
+        const select = document.getElementById('trainingWrestlerSelect');
+        
+        select.innerHTML = '<option value="">-- Choose a wrestler --</option>' + 
+            data.wrestlers.map(w => `<option value="${w.wrestler_id}">${w.wrestler_name}</option>`).join('');
+    } catch (error) {
+        console.error('Error loading training program:', error);
+    }
+}
+
+async function loadWrestlerTrainingPlan() {
+    const wrestlerId = document.getElementById('trainingWrestlerSelect').value;
+    const statsDiv = document.getElementById('wrestlerTrainingStats');
+    
+    if (!wrestlerId) {
+        statsDiv.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/developmental/wrestler/${wrestlerId}/training`);
+        if (!response.ok) throw new Error('Failed to load training plan');
+        
+        const data = await response.json();
+        
+        statsDiv.innerHTML = `
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6>Current Training Status</h6>
+                    <p><strong>Weeks in Training:</strong> ${data.weeks_in_developmental}</p>
+                    <p><strong>Overall Rating:</strong> ${data.developmental_rating}</p>
+                    <p><strong>Coach Evaluation:</strong> ${data.coach_evaluation}</p>
+                    <hr>
+                    <h6>Skill Progress</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>In-Ring:</strong> ${data.skills.in_ring}/100</p>
+                            <p><strong>Mic Work:</strong> ${data.skills.mic_work}/100</p>
+                            <p><strong>Character:</strong> ${data.skills.character}/100</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Psychology:</strong> ${data.skills.psychology}/100</p>
+                            <p><strong>Selling:</strong> ${data.skills.selling}/100</p>
+                            <p><strong>Conditioning:</strong> ${data.skills.conditioning}/100</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        statsDiv.innerHTML = `<div class="alert alert-danger">Error loading training data: ${error.message}</div>`;
+    }
+}
+
+async function runTrainingSession() {
+    const wrestlerId = document.getElementById('trainingWrestlerSelect').value;
+    const focus = document.getElementById('trainingFocus').value;
+    
+    if (!wrestlerId) {
+        alert('Please select a wrestler');
+        return;
+    }
+    
+    try {
+        const progressArea = document.getElementById('trainingProgressArea');
+        const progressBar = document.getElementById('trainingProgressBar');
+        const progressText = document.getElementById('trainingProgressText');
+        
+        progressArea.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Starting training session...';
+        
+        // Simulate progress
+        for (let i = 0; i <= 100; i += 10) {
+            progressBar.style.width = i + '%';
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        const response = await fetch('/api/developmental/training/run', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                wrestler_id: wrestlerId,
+                focus_area: focus
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            progressText.textContent = `✅ Training complete! ${result.improvements.join(', ')}`;
+            progressBar.classList.remove('progress-bar-animated');
+            progressBar.classList.add('bg-success');
+            loadWrestlerTrainingPlan();
+            loadDevelopmentalRoster();
+        } else {
+            progressText.textContent = `⚠️ ${result.message || 'Training session completed with no improvements'}`;
+        }
+    } catch (error) {
+        document.getElementById('trainingProgressText').textContent = `❌ Error: ${error.message}`;
     }
 }
 
