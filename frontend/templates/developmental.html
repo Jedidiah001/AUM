@@ -224,7 +224,7 @@
 
         <!-- Nexus Championship Tab -->
         <div class="tab-pane fade" id="championship-tab">
-            <div class="row">
+            <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-warning text-dark">
@@ -245,12 +245,43 @@
                             <h5 class="mb-0"><i class="bi bi-gear"></i> Championship Actions</h5>
                         </div>
                         <div class="card-body">
-                            <button class="btn btn-warning w-100 mb-2" onclick="showCrownChampionModal()">
+                            <button class="btn btn-warning w-100 mb-2" onclick="showBookNexusMatchModal()">
+                                <i class="bi bi-calendar-event"></i> Book Nexus Match
+                            </button>
+                            <button class="btn btn-info w-100 mb-2" onclick="showCrownChampionModal()">
                                 <i class="bi bi-crown"></i> Crown New Champion
                             </button>
-                            <button class="btn btn-success w-100 mb-2" onclick="showRecordDefenseModal()">
-                                <i class="bi bi-shield-check"></i> Record Title Defense
+                            <button class="btn btn-success w-100" onclick="loadNexusChampionshipHistory()">
+                                <i class="bi bi-clock-history"></i> View Title History
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Title History Section -->
+            <div class="row" id="titleHistorySection" style="display:none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="bi bi-journal-bookmark"></i> Nexus Championship History</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Champion</th>
+                                            <th>Won</th>
+                                            <th>Days Held</th>
+                                            <th>Defenses</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="titleHistoryBody">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -407,12 +438,18 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Wrestler ID</label>
-                    <input type="text" class="form-control" id="crownWrestlerId" placeholder="Enter wrestler ID">
+                    <label class="form-label">Select Wrestler</label>
+                    <select class="form-select" id="crownWrestlerSelect" onchange="document.getElementById('crownWrestlerId').value = this.value; document.getElementById('crownWrestlerName').value = this.options[this.selectedIndex].dataset.name;">
+                        <option value="">-- Choose from Developmental Roster --</option>
+                    </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Wrestler Name</label>
-                    <input type="text" class="form-control" id="crownWrestlerName" placeholder="Enter wrestler name">
+                    <label class="form-label">Wrestler ID (auto-filled)</label>
+                    <input type="text" class="form-control" id="crownWrestlerId" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Wrestler Name (auto-filled)</label>
+                    <input type="text" class="form-control" id="crownWrestlerName" readonly>
                 </div>
             </div>
             <div class="modal-footer">
@@ -425,31 +462,37 @@
     </div>
 </div>
 
-<!-- Record Defense Modal -->
-<div class="modal fade" id="recordDefenseModal" tabindex="-1">
+<!-- Book Nexus Match Modal -->
+<div class="modal fade" id="bookNexusMatchModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Record Title Defense</h5>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar-event"></i> Book Nexus Match</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Champion Wrestler ID</label>
-                    <input type="text" class="form-control" id="defenseWrestlerId" placeholder="Enter champion's wrestler ID">
+                    <label class="form-label">Wrestler 1</label>
+                    <select class="form-select" id="nexusMatchWrestler1">
+                        <option value="">-- Select Wrestler --</option>
+                    </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Was the defense successful?</label>
-                    <select class="form-select" id="defenseSuccessful">
-                        <option value="true">Yes - Retained Title</option>
-                        <option value="false">No - Lost Title</option>
+                    <label class="form-label">Wrestler 2</label>
+                    <select class="form-select" id="nexusMatchWrestler2">
+                        <option value="">-- Select Wrestler --</option>
                     </select>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="nexusMatchIsTitle">
+                    <label class="form-check-label" for="nexusMatchIsTitle">Make this a Title Match</label>
+                    <small class="form-text text-muted d-block">If checked, the winner becomes/becomes new champion</small>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" onclick="recordDefense()">
-                    <i class="bi bi-check-circle"></i> Record Defense
+                <button type="button" class="btn btn-primary" onclick="bookNexusMatch()">
+                    <i class="bi bi-play-fill"></i> Book & Simulate Match
                 </button>
             </div>
         </div>
@@ -667,20 +710,140 @@ async function loadNexusChampionship() {
         const champ = await response.json();
         const container = document.getElementById('nexusChampionshipInfo');
         
+        // Calculate days held based on weeks
+        const daysHeld = champ.days_held || (champ.won_date_week ? (new Date().getTime() - new Date(`2024-W${champ.won_date_week}`).getTime()) / (1000 * 60 * 60 * 24) : 0);
+        
         container.innerHTML = `
             <div class="text-center">
                 <i class="bi bi-trophy-fill text-warning" style="font-size: 4rem;"></i>
                 <h4 class="mt-3">${champ.name}</h4>
                 ${champ.current_holder_name ? `
                     <p class="lead"><strong>Champion:</strong> ${champ.current_holder_name}</p>
-                    <p><strong>Days Held:</strong> ${champ.days_held}</p>
+                    <p><strong>Days Held:</strong> ${Math.floor(daysHeld)}</p>
                     <p><strong>Defenses:</strong> ${champ.defense_count}</p>
-                    <p><strong>Won:</strong> Y${champ.won_date_year} W${champ.won_date_week}</p>
+                    <p><strong>Won:</strong> Year ${champ.won_date_year}, Week ${champ.won_date_week}</p>
+                    <div class="alert alert-info mt-3">
+                        <small>Current reign started in Y${champ.won_date_year} W${champ.won_date_week}</small>
+                    </div>
                 ` : '<p class="text-muted">No current champion</p>'}
+                ${champ.history && champ.history.length > 0 ? `
+                    <hr>
+                    <p class="text-muted"><small>Total Reigns: ${champ.history.length}</small></p>
+                ` : ''}
             </div>
         `;
     } catch (error) {
         console.error('Error loading championship:', error);
+        document.getElementById('nexusChampionshipInfo').innerHTML = `
+            <div class="alert alert-danger">Error loading championship: ${error.message}</div>
+        `;
+    }
+}
+
+async function loadNexusChampionshipHistory() {
+    try {
+        const response = await fetch('/api/developmental/championship');
+        if (!response.ok) throw new Error('Failed to load championship');
+        
+        const champ = await response.json();
+        const historySection = document.getElementById('titleHistorySection');
+        const tbody = document.getElementById('titleHistoryBody');
+        
+        if (!champ.history || champ.history.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No championship history yet</td></tr>';
+        } else {
+            // Sort by most recent first
+            const sortedHistory = [...champ.history].reverse();
+            
+            tbody.innerHTML = sortedHistory.map((reign, index) => `
+                <tr>
+                    <td>${sortedHistory.length - index}</td>
+                    <td><strong>${reign.wrestler_name}</strong></td>
+                    <td>Y${reign.won_date_year} W${reign.won_date_week}</td>
+                    <td>${reign.days_held || 'N/A'}</td>
+                    <td>${reign.defense_count || 0}</td>
+                </tr>
+            `).join('');
+        }
+        
+        historySection.style.display = 'block';
+        // Scroll to history section
+        historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+        console.error('Error loading championship history:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+function showBookNexusMatchModal() {
+    // Load developmental wrestlers for selection
+    loadDevWrestlersForMatchBooking();
+    new bootstrap.Modal(document.getElementById('bookNexusMatchModal')).show();
+}
+
+async function loadDevWrestlersForMatchBooking() {
+    try {
+        const response = await fetch('/api/developmental/roster');
+        if (!response.ok) throw new Error('Failed to load roster');
+        
+        const data = await response.json();
+        const wrestlers = data.wrestlers || [];
+        
+        const select1 = document.getElementById('nexusMatchWrestler1');
+        const select2 = document.getElementById('nexusMatchWrestler2');
+        
+        const options = '<option value="">-- Select Wrestler --</option>' + 
+            wrestlers.map(w => `<option value="${w.wrestler_id}" data-name="${w.wrestler_name}">${w.wrestler_name} (Rating: ${w.developmental_rating})</option>`).join('');
+        
+        select1.innerHTML = options;
+        select2.innerHTML = options;
+        
+        // Clear previous selections
+        select1.value = '';
+        select2.value = '';
+    } catch (error) {
+        console.error('Error loading wrestlers:', error);
+    }
+}
+
+async function bookNexusMatch() {
+    const wrestler1Id = document.getElementById('nexusMatchWrestler1').value;
+    const wrestler2Id = document.getElementById('nexusMatchWrestler2').value;
+    const isTitleMatch = document.getElementById('nexusMatchIsTitle').checked;
+    
+    if (!wrestler1Id || !wrestler2Id) {
+        alert('Please select both wrestlers');
+        return;
+    }
+    
+    if (wrestler1Id === wrestler2Id) {
+        alert('Cannot book a wrestler against themselves');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/developmental/championship/book-match', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                wrestler1_id: wrestler1Id,
+                wrestler2_id: wrestler2Id,
+                is_title_match: isTitleMatch
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ Match booked successfully!\n\nWinner: ${result.winner_name}\nMatch Rating: ${result.match_rating}/100\n${result.title_change ? '🏆 NEW CHAMPION!' : ''}`);
+            bootstrap.Modal.getInstance(document.getElementById('bookNexusMatchModal')).hide();
+            loadNexusChampionship();
+            loadDevelopmentalRoster();
+        } else {
+            alert(`❌ Error: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
     }
 }
 
@@ -741,7 +904,30 @@ async function executeCallUp() {
 }
 
 function showCrownChampionModal() {
+    // Load developmental wrestlers for selection
+    loadDevWrestlersForCrownModal();
     new bootstrap.Modal(document.getElementById('crownChampionModal')).show();
+}
+
+async function loadDevWrestlersForCrownModal() {
+    try {
+        const response = await fetch('/api/developmental/roster');
+        if (!response.ok) throw new Error('Failed to load roster');
+        
+        const data = await response.json();
+        const wrestlers = data.wrestlers || [];
+        
+        const select = document.getElementById('crownWrestlerSelect');
+        const options = '<option value="">-- Choose from Developmental Roster --</option>' + 
+            wrestlers.map(w => `<option value="${w.wrestler_id}" data-name="${w.wrestler_name}">${w.wrestler_name} (Rating: ${w.developmental_rating})</option>`).join('');
+        
+        select.innerHTML = options;
+        // Clear the ID and name fields
+        document.getElementById('crownWrestlerId').value = '';
+        document.getElementById('crownWrestlerName').value = '';
+    } catch (error) {
+        console.error('Error loading wrestlers:', error);
+    }
 }
 
 async function crownChampion() {
@@ -749,7 +935,7 @@ async function crownChampion() {
     const wrestlerName = document.getElementById('crownWrestlerName').value;
     
     if (!wrestlerId || !wrestlerName) {
-        alert('Please enter both wrestler ID and name');
+        alert('Please select a wrestler from the dropdown');
         return;
     }
     
@@ -955,19 +1141,18 @@ async function runTrainingSession() {
             await new Promise(resolve => setTimeout(resolve, 200));
         }
         
-        const response = await fetch('/api/developmental/training/run', {
+        const response = await fetch(`/api/developmental/wrestler/${wrestlerId}/train`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                wrestler_id: wrestlerId,
-                focus_area: focus
+                training_focus: focus
             })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            progressText.textContent = `✅ Training complete! ${result.improvements.join(', ')}`;
+            progressText.textContent = `✅ Training complete! Rating increased by ${result.improvement} points. Session quality: ${result.session_quality}/100`;
             progressBar.classList.remove('progress-bar-animated');
             progressBar.classList.add('bg-success');
             loadWrestlerTrainingPlan();
@@ -980,9 +1165,127 @@ async function runTrainingSession() {
     }
 }
 
-function viewWrestlerDetails(wrestlerId) {
-    // Could open a modal with more details
-    alert(`Viewing details for wrestler ${wrestlerId}`);
+async function viewWrestlerDetails(wrestlerId) {
+    try {
+        const response = await fetch(`/api/developmental/wrestler/${wrestlerId}`);
+        if (!response.ok) throw new Error('Failed to load wrestler details');
+        
+        const wrestler = await response.json();
+        
+        const readinessSummary = wrestler.readiness_summary || {};
+        const strengths = (readinessSummary.strengths || []).join(', ') || 'None identified';
+        const weaknesses = (readinessSummary.weaknesses || []).join(', ') || 'None identified';
+        
+        const modalHtml = `
+            <div class="modal fade" id="wrestlerDetailsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title"><i class="bi bi-person-badge"></i> ${wrestler.wrestler_name}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6>Basic Info</h6>
+                                    <p><strong>Status:</strong> <span class="badge bg-${getStatusBadgeClass(wrestler.status)}">${wrestler.status_label}</span></p>
+                                    <p><strong>Weeks in Dev:</strong> ${wrestler.weeks_in_developmental}</p>
+                                    <p><strong>Eligible:</strong> ${wrestler.is_call_up_eligible ? 'Yes' : `No (${wrestler.call_up_eligible_week - wrestler.weeks_in_developmental} weeks left)`}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Ratings</h6>
+                                    <p><strong>Dev Rating:</strong> <span class="badge bg-${getRatingBadgeClass(wrestler.developmental_rating)}">${wrestler.developmental_rating}</span></p>
+                                    <p><strong>Coach Eval:</strong> <span class="badge bg-${getRatingBadgeClass(wrestler.coach_evaluation)}">${wrestler.coach_evaluation}</span></p>
+                                    <p><strong>Match Quality:</strong> ${wrestler.match_quality_avg.toFixed(1)}</p>
+                                    <p><strong>Crowd Reaction:</strong> ${wrestler.crowd_reaction_avg.toFixed(1)}</p>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6>Strengths</h6>
+                                    <ul class="list-unstyled text-success">
+                                        ${strengths.split(', ').map(s => s.trim() ? `<li><i class="bi bi-check-circle"></i> ${s}</li>` : '').join('')}
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Weaknesses</h6>
+                                    <ul class="list-unstyled text-warning">
+                                        ${weaknesses.split(', ').map(w => w.trim() ? `<li><i class="bi bi-exclamation-triangle"></i> ${w}</li>` : '').join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            ${wrestler.training_focus && wrestler.training_focus.length > 0 ? `
+                            <div class="mb-3">
+                                <h6>Training Focus Areas</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    ${wrestler.training_focus.map(focus => `<span class="badge bg-primary">${focus.replace('_', ' ').title()}</span>`).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${wrestler.achievements && wrestler.achievements.length > 0 ? `
+                            <div class="mb-3">
+                                <h6>Achievements</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    ${wrestler.achievements.map(ach => `<span class="badge bg-warning text-dark"><i class="bi bi-trophy"></i> ${ach.replace('_', ' ').title()}</span>`).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${wrestler.coaching_notes ? `
+                            <div class="mb-3">
+                                <h6>Coaching Notes</h6>
+                                <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                                    <pre class="mb-0" style="white-space: pre-wrap;">${wrestler.coaching_notes}</pre>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${wrestler.times_called_up > 0 ? `
+                            <div class="alert alert-info">
+                                <strong>Call-Up History:</strong> Called up ${wrestler.times_called_up} time(s). 
+                                Last: ${wrestler.last_call_up_brand || 'Unknown'} (Y${wrestler.last_call_up_year} W${wrestler.last_call_up_week})
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            ${wrestler.is_call_up_eligible ? `
+                                <button type="button" class="btn btn-primary" onclick="showCallUpModal('${wrestler.wrestler_id}', '${wrestler.wrestler_name}')">
+                                    <i class="bi bi-arrow-up-circle"></i> Initiate Call-Up
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('wrestlerDetailsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('wrestlerDetailsModal'));
+        modal.show();
+        
+        // Remove modal from DOM when hidden
+        document.getElementById('wrestlerDetailsModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    } catch (error) {
+        console.error('Error loading wrestler details:', error);
+        alert(`Error: ${error.message}`);
+    }
 }
 
 // Initialize on load
