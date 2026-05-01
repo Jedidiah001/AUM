@@ -352,6 +352,12 @@ def draft_view():
     return render_template('draft.html')
 
 
+@app.route('/developmental')
+def developmental_view():
+    """Developmental brand (ROC Nexus) management page"""
+    return render_template('developmental.html')
+
+
 @app.route('/injuries')
 def injuries_view():
     return render_template('injuries.html')

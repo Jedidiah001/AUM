@@ -42,6 +42,7 @@ from .evolve_routes import evolve_bp
 from .world_feed_routes import world_feed_bp
 from .history_hub_routes import history_hub_bp
 from .booker_routes import booker_bp
+from .developmental_routes import developmental_bp
 
 # Existing imports...
 from models.wrestler import Wrestler
@@ -64,6 +65,23 @@ def register_all_routes(app, database, universe, **kwargs):
     # Store additional managers/services
     for key, value in kwargs.items():
         app.config[key.upper()] = value
+
+    # Initialize Developmental Roster System
+    if 'DEV_ROSTER_MANAGER' not in app.config:
+        try:
+            from models.developmental_roster import DevelopmentalRosterManager
+            from simulation.call_up_engine import CallUpEngine
+            
+            dev_manager = DevelopmentalRosterManager()
+            call_up_engine = CallUpEngine(dev_manager)
+            
+            app.config['DEV_ROSTER_MANAGER'] = dev_manager
+            app.config['CALL_UP_ENGINE'] = call_up_engine
+            print("✅ Developmental roster system initialized")
+        except Exception as e:
+            print(f"⚠️ Could not initialize developmental system: {e}")
+            app.config['DEV_ROSTER_MANAGER'] = None
+            app.config['CALL_UP_ENGINE'] = None
 
     # STEP 121: Initialize promise manager if not already provided
     if 'PROMISE_MANAGER' not in app.config:
@@ -127,6 +145,7 @@ def register_all_routes(app, database, universe, **kwargs):
         world_feed_bp,
         history_hub_bp,
         booker_bp,
+        developmental_bp,
     ]
 
     # DEBUG: Print all blueprint names to find duplicates
