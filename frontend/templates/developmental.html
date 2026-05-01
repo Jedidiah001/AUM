@@ -844,19 +844,14 @@ async function submitAddWrestler() {
     }
     
     try {
-        const response = await fetch('/api/developmental/wrestler/add', {
+        const response = await fetch('/api/developmental/add', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                first_name: firstName,
-                last_name: lastName,
-                ring_name: ringName || null,
-                age: age,
-                gender: gender,
-                nationality: nationality,
-                hometown: hometown,
-                skills: skills,
-                notes: notes
+                wrestler_id: `${firstName}_${lastName}`.replace(/\s+/g, '_').toLowerCase(),
+                wrestler_name: `${firstName} ${lastName}`,
+                initial_rating: Math.floor((skills.in_ring + skills.mic_work + skills.character + skills.psychology + skills.selling + skills.conditioning) / 6),
+                coaching_notes: notes
             })
         });
         
