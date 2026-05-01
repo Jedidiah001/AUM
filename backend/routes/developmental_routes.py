@@ -63,6 +63,100 @@ def api_get_developmental_wrestler(wrestler_id):
         return jsonify({'error': str(e)}), 500
 
 
+@developmental_bp.route('/api/developmental/wrestler/<wrestler_id>/training', methods=['GET'])
+def api_get_wrestler_training(wrestler_id):
+    """Get training plan and stats for a developmental wrestler"""
+    try:
+        dev_manager = get_dev_manager()
+        if not dev_manager:
+            return jsonify({'error': 'Developmental system not initialized'}), 500
+        
+        entry = dev_manager.get_entry(wrestler_id)
+        if not entry:
+            return jsonify({'error': 'Wrestler not found in developmental roster'}), 404
+        
+        # Generate skill breakdown based on developmental rating
+        base_skill = entry.developmental_rating
+        skills = {
+            'in_ring': min(100, max(0, base_skill + random.randint(-10, 10))),
+            'mic_work': min(100, max(0, base_skill + random.randint(-10, 10))),
+            'character': min(100, max(0, base_skill + random.randint(-10, 10))),
+            'psychology': min(100, max(0, base_skill + random.randint(-10, 10))),
+            'selling': min(100, max(0, base_skill + random.randint(-10, 10))),
+            'conditioning': min(100, max(0, base_skill + random.randint(-10, 10)))
+        }
+        
+        return jsonify({
+            'wrestler_id': entry.wrestler_id,
+            'wrestler_name': entry.wrestler_name,
+            'weeks_in_developmental': entry.weeks_in_developmental,
+            'developmental_rating': entry.developmental_rating,
+            'coach_evaluation': entry.coach_evaluation,
+            'skills': skills,
+            'training_focus': entry.training_focus,
+            'coaching_notes': entry.coaching_notes,
+            'achievements': entry.achievements,
+            'readiness_summary': entry.get_readiness_summary()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@developmental_bp.route('/api/developmental/wrestler/<wrestler_id>/train', methods=['POST'])
+def api_run_training_session(wrestler_id):
+    """Run a training session for a developmental wrestler"""
+    try:
+        data = request.get_json()
+        training_focus = data.get('training_focus', 'in_ring')
+        
+        dev_manager = get_dev_manager()
+        if not dev_manager:
+            return jsonify({'error': 'Developmental system not initialized'}), 500
+        
+        entry = dev_manager.get_entry(wrestler_id)
+        if not entry:
+            return jsonify({'error': 'Wrestler not found in developmental roster'}), 404
+        
+        # Simulate training session
+        improvement = random.randint(1, 5)
+        session_quality = random.randint(60, 100)
+        
+        # Update coaching notes
+        focus_labels = {
+            'in_ring': 'In-Ring Skills',
+            'mic_work': 'Mic Work/Promo',
+            'character': 'Character Development',
+            'psychology': 'Match Psychology',
+            'selling': 'Selling/Storytelling',
+            'conditioning': 'Physical Conditioning'
+        }
+        
+        note = f"Week {entry.weeks_in_developmental + 1}: Focused on {focus_labels.get(training_focus, training_focus)}. Session quality: {session_quality}/100. Showed improvement."
+        if entry.coaching_notes:
+            entry.coaching_notes += "\n" + note
+        else:
+            entry.coaching_notes = note
+        
+        # Add to training focus if not already there
+        if training_focus not in entry.training_focus:
+            entry.training_focus.append(training_focus)
+        
+        # Small rating increase
+        entry.developmental_rating = min(100, entry.developmental_rating + improvement)
+        entry.coach_evaluation = min(100, entry.coach_evaluation + random.randint(0, 3))
+        
+        return jsonify({
+            'success': True,
+            'message': f'Training session completed. Rating increased by {improvement} points.',
+            'session_quality': session_quality,
+            'improvement': improvement,
+            'new_developmental_rating': entry.developmental_rating,
+            'coaching_notes': entry.coaching_notes
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @developmental_bp.route('/api/developmental/wrestler/<wrestler_id>/update_performance', methods=['POST'])
 def api_update_developmental_performance(wrestler_id):
     """Update performance metrics for a developmental wrestler after a match"""
