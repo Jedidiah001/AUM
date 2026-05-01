@@ -1,1 +1,1 @@
-Nothing should be ignored in this case, as the changes only include source code files (.py) and template files (.html) without any build artifacts, dependencies, or temporary files.
+Nothing should be ignored in this case, as only a source code file (`backend/persistence/database.py`) was modified and there are no build artifacts, dependencies, or temporary files in the changes.

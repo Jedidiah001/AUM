@@ -3595,6 +3595,85 @@ class Database:
                 week INTEGER NOT NULL,
                 created_at TEXT NOT NULL
             )
+            
+            -- Developmental Roster Tables
+            CREATE TABLE IF NOT EXISTS developmental_roster (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                wrestler_id TEXT UNIQUE NOT NULL,
+                wrestler_name TEXT NOT NULL,
+                join_date_year INTEGER NOT NULL,
+                join_date_week INTEGER NOT NULL,
+                status TEXT NOT NULL DEFAULT 'developmental',
+                developmental_rating INTEGER NOT NULL DEFAULT 50,
+                match_quality_avg REAL NOT NULL DEFAULT 0.0,
+                crowd_reaction_avg REAL NOT NULL DEFAULT 0.0,
+                coach_evaluation INTEGER NOT NULL DEFAULT 50,
+                weeks_in_developmental INTEGER NOT NULL DEFAULT 0,
+                call_up_eligible_week INTEGER NOT NULL DEFAULT 8,
+                times_called_up INTEGER NOT NULL DEFAULT 0,
+                last_call_up_year INTEGER,
+                last_call_up_week INTEGER,
+                last_call_up_brand TEXT,
+                call_up_success_rate REAL NOT NULL DEFAULT 0.0,
+                assigned_brand TEXT,
+                assigned_brand_date_year INTEGER,
+                assigned_brand_date_week INTEGER,
+                achievements TEXT DEFAULT '[]',
+                training_focus TEXT DEFAULT '[]',
+                coaching_notes TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            ),
+            
+            -- Call-Up History Table
+            CREATE TABLE IF NOT EXISTS call_up_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                wrestler_id TEXT NOT NULL,
+                wrestler_name TEXT NOT NULL,
+                call_up_year INTEGER NOT NULL,
+                call_up_week INTEGER NOT NULL,
+                source_brand TEXT NOT NULL,
+                destination_brand TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                initiating_gm TEXT,
+                success_outcome INTEGER,
+                return_date_year INTEGER,
+                return_date_week INTEGER,
+                created_at TEXT NOT NULL
+            ),
+            
+            -- Nexus Championship Table
+            CREATE TABLE IF NOT EXISTS nexus_championship (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                championship_id TEXT NOT NULL DEFAULT 'nexus_championship',
+                name TEXT NOT NULL DEFAULT 'Nexus Championship',
+                current_holder_id TEXT,
+                current_holder_name TEXT,
+                won_date_year INTEGER,
+                won_date_week INTEGER,
+                days_held INTEGER NOT NULL DEFAULT 0,
+                defense_count INTEGER NOT NULL DEFAULT 0,
+                history TEXT DEFAULT '[]',
+                updated_at TEXT NOT NULL
+            ),
+            
+            -- Nexus Championship Matches Table
+            CREATE TABLE IF NOT EXISTS nexus_championship_matches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                match_date_year INTEGER NOT NULL,
+                match_date_week INTEGER NOT NULL,
+                wrestler1_id TEXT NOT NULL,
+                wrestler1_name TEXT NOT NULL,
+                wrestler2_id TEXT NOT NULL,
+                wrestler2_name TEXT NOT NULL,
+                winner_id TEXT NOT NULL,
+                winner_name TEXT NOT NULL,
+                was_title_match INTEGER NOT NULL DEFAULT 0,
+                title_changed INTEGER NOT NULL DEFAULT 0,
+                match_quality INTEGER NOT NULL DEFAULT 50,
+                notes TEXT,
+                created_at TEXT NOT NULL
+            )
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_office_alerts_dismissed ON office_alerts(dismissed)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_office_alerts_priority ON office_alerts(priority)')
