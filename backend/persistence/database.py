@@ -59,7 +59,7 @@ class Database:
                 show_count INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 last_saved TEXT NOT NULL
-            )
+            );
         ''')
         
         # Wrestlers Table
@@ -108,7 +108,7 @@ class Database:
                 
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            )
+            );
         ''')
         
         # Championships Table
@@ -132,7 +132,7 @@ class Database:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (current_holder_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         # For existing databases, add columns if they don't exist
@@ -192,7 +192,7 @@ class Database:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (title_id) REFERENCES championships(id),
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         
         # Feuds Table
@@ -219,7 +219,7 @@ class Database:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (title_id) REFERENCES championships(id)
-            )
+            );
         ''')
         
         # Feud Segments Table
@@ -236,7 +236,7 @@ class Database:
                 intensity_change INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (feud_id) REFERENCES feuds(id)
-            )
+            );
         ''')
         
         # Match History Table
@@ -272,7 +272,7 @@ class Database:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (title_id) REFERENCES championships(id),
                 FOREIGN KEY (feud_id) REFERENCES feuds(id)
-            )
+            );
         ''')
         
         # Show History Table
@@ -295,7 +295,7 @@ class Database:
                 
                 events TEXT NOT NULL,  -- JSON array
                 created_at TEXT NOT NULL
-            )
+            );
         ''')
         
         # Create indexes for performance
@@ -330,7 +330,7 @@ class Database:
                 completed_beats TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            )
+            );
         ''')
         
         # Create stats tracking tables
@@ -380,7 +380,7 @@ class Database:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_contract_storylines_wrestler ON contract_storylines(wrestler_id)')
@@ -464,7 +464,7 @@ class Database:
                 updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers (id) ON DELETE CASCADE
-            )
+            );
         ''')
 
         cursor.execute(
@@ -1350,7 +1350,7 @@ class Database:
                 last_updated TEXT NOT NULL,
                 
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         
         # Milestones Table
@@ -1366,7 +1366,7 @@ class Database:
                 week INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         
         # Indexes
@@ -1813,7 +1813,7 @@ class Database:
                 team_draws INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            )
+            );
         ''')
         
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_tag_teams_brand ON tag_teams(primary_brand)')
@@ -1960,7 +1960,7 @@ class Database:
                 is_disbanded INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            )
+            );
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_factions_brand ON factions(primary_brand)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_factions_active ON factions(is_active)')
@@ -2046,7 +2046,7 @@ class Database:
                 is_active INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            )
+            );
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_relationships_a ON locker_room_relationships(wrestler_a_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_relationships_b ON locker_room_relationships(wrestler_b_id)')
@@ -2134,7 +2134,7 @@ class Database:
                 rehab_focus INTEGER NOT NULL DEFAULT 60,
                 notes TEXT DEFAULT '',
                 updated_at TEXT NOT NULL
-            )
+            );
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS wellness_violations (
@@ -2148,7 +2148,7 @@ class Database:
                 suspension_weeks INTEGER NOT NULL DEFAULT 0,
                 notes TEXT DEFAULT '',
                 created_at TEXT NOT NULL
-            )
+            );
         ''')
         cursor.execute('SELECT COUNT(*) FROM wellness_policy')
         if cursor.fetchone()[0] == 0:
@@ -2398,7 +2398,7 @@ class Database:
                 date_added TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_contract_incentives_wrestler ON contract_incentives(wrestler_id)')
@@ -2424,7 +2424,7 @@ class Database:
                 is_active INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_contract_history_wrestler ON contract_history(wrestler_id)')
@@ -2785,7 +2785,7 @@ class Database:
                 morale_penalty_applied INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_contract_promises_wrestler ON contract_promises(wrestler_id)')
@@ -2955,7 +2955,7 @@ class Database:
                 resolution_details TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_fa_declarations_wrestler ON free_agency_declarations(wrestler_id)')
@@ -3284,7 +3284,7 @@ class Database:
                 lame_duck_effort_penalty REAL DEFAULT 0.0,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         cursor.execute('''
@@ -3307,7 +3307,7 @@ class Database:
                 influenced_wrestlers TEXT DEFAULT '[]',
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_behavior_events_wrestler ON behavior_events(wrestler_id)')
@@ -3457,7 +3457,7 @@ class Database:
                 game_week INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_recovery_events_wrestler ON recovery_events(wrestler_id)')
@@ -3470,7 +3470,7 @@ class Database:
                 last_used_json TEXT NOT NULL DEFAULT '{}',
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
 
         self.conn.commit()
@@ -3545,7 +3545,7 @@ class Database:
                 show_data TEXT NOT NULL,
                 production_plan TEXT,
                 created_at TEXT NOT NULL
-            )
+            );
         ''')
         self.conn.commit()
         print("✅ Show drafts table created")
@@ -3574,13 +3574,13 @@ class Database:
                 week INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (primary_wrestler_id) REFERENCES wrestlers(id)
-            )
+            );
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_morale_seeds_wrestler ON morale_storyline_seeds(primary_wrestler_id)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_morale_seeds_status ON morale_storyline_seeds(status)')
 
         # Office alerts (Step 263)
-        cursor.execute('''
+        cursor.executescript('''
             CREATE TABLE IF NOT EXISTS office_alerts (
                 alert_id TEXT PRIMARY KEY,
                 priority TEXT NOT NULL,
@@ -3594,7 +3594,7 @@ class Database:
                 year INTEGER NOT NULL,
                 week INTEGER NOT NULL,
                 created_at TEXT NOT NULL
-            )
+            );
             
             -- Developmental Roster Tables
             CREATE TABLE IF NOT EXISTS developmental_roster (
@@ -3623,7 +3623,7 @@ class Database:
                 coaching_notes TEXT DEFAULT '',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
-            ),
+            );
             
             -- Call-Up History Table
             CREATE TABLE IF NOT EXISTS call_up_history (
@@ -3640,7 +3640,7 @@ class Database:
                 return_date_year INTEGER,
                 return_date_week INTEGER,
                 created_at TEXT NOT NULL
-            ),
+            );
             
             -- Nexus Championship Table
             CREATE TABLE IF NOT EXISTS nexus_championship (
@@ -3655,7 +3655,7 @@ class Database:
                 defense_count INTEGER NOT NULL DEFAULT 0,
                 history TEXT DEFAULT '[]',
                 updated_at TEXT NOT NULL
-            ),
+            );
             
             -- Nexus Championship Matches Table
             CREATE TABLE IF NOT EXISTS nexus_championship_matches (
@@ -3673,7 +3673,7 @@ class Database:
                 match_quality INTEGER NOT NULL DEFAULT 50,
                 notes TEXT,
                 created_at TEXT NOT NULL
-            )
+            );
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_office_alerts_dismissed ON office_alerts(dismissed)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_office_alerts_priority ON office_alerts(priority)')
@@ -3811,7 +3811,7 @@ class Database:
                 show_data TEXT NOT NULL,
                 production_plan TEXT,
                 created_at TEXT
-            )
+            );
         ''')
     
         cursor.execute('''
