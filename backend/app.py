@@ -258,10 +258,6 @@ def locker_room_view():
 
 
 
-@app.route('/turns')
-def turns_view():
-    return render_template('turns.html')
-
 
 @app.route('/')
 def index():
