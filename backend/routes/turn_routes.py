@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 
-from models.alignment import Alignment, CrowdReaction, TurnType, determine_turn_type
+from models.alignment import Alignment, CrowdReaction, TurnType, determine_turn_type, calculate_popularity_impact
 from simulation.turn_booking import TurnBookingEngine
 
 turn_bp = Blueprint('turn', __name__)
@@ -74,8 +74,25 @@ def api_create_turn():
         target_wrestler_names=target_names,
     )
 
+    auto_execute = data.get('auto_execute', False)
+    if auto_execute:
+        crowd_reaction = CrowdReaction(data.get('crowd_reaction', 'mixed'))
+        popularity_change = calculate_popularity_impact(
+            old_alignment=old_alignment,
+            new_alignment=new_alignment,
+            crowd_reaction=crowd_reaction,
+            wrestler_popularity=wrestler.stats.popularity,
+            is_successful=True,
+        )
+        turn.execute_turn(universe.current_year, universe.current_week, f"show_y{universe.current_year}_w{universe.current_week}")
+        turn.final_crowd_reaction = crowd_reaction
+        turn.resolve_turn(universe.current_year, universe.current_week, popularity_change)
+        wrestler.alignment = new_alignment.value
+        wrestler.adjust_popularity(popularity_change)
+        universe.save_wrestler(wrestler)
+
     universe.save_turn_state()
-    return jsonify({'success': True, 'turn': turn.to_dict()})
+    return jsonify({'success': True, 'turn': turn.to_dict(), 'auto_executed': auto_execute})
 
 
 @turn_bp.route('/api/turns/<turn_id>/simulate-segment', methods=['POST'])
