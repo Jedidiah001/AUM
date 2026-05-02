@@ -82,6 +82,7 @@ def api_create_turn():
             new_alignment=new_alignment,
             crowd_reaction=crowd_reaction,
             wrestler_popularity=wrestler.popularity,
+            wrestler_popularity=wrestler.stats.popularity,
             is_successful=True,
         )
         turn.execute_turn(universe.current_year, universe.current_week, f"show_y{universe.current_year}_w{universe.current_week}")
