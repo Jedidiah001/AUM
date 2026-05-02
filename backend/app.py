@@ -281,11 +281,6 @@ def roster_view():
     return render_template('roster.html')
 
 
-@app.route('/turns')
-def turns_view():
-    return render_template('betrayal_turn_system.html')
-
-
 @app.route('/feuds')
 def feuds_view():
     return render_template('feuds.html')
