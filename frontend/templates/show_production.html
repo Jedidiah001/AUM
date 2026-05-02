@@ -1072,7 +1072,7 @@ async function loadDebutCandidates() {
             return;
         }
         sel.innerHTML = d.debut_candidates.map(c =>
-            `<option value="${c.id}">${c.name} (${c.role}, ${c.alignment})</option>`
+            `<option value="${c.id}">${c.name} (${c.role})</option>`
         ).join('');
     } catch(e) {}
 }
