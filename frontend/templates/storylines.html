@@ -179,7 +179,6 @@
         text-transform: uppercase;
     }
 
-    .type-betrayal { background: #dc3545; color: white; }
     .type-return { background: #28a745; color: white; }
     .type-title_pursuit { background: #ffc107; color: #000; }
     .type-faction_war { background: #6f42c1; color: white; }
@@ -468,7 +467,6 @@
                     
                     let effectsHtml = '';
                     if (beat.create_feud) effectsHtml += '<span class="beat-effect">Creates Feud</span>';
-                    if (beat.turn_alignment) effectsHtml += '<span class="beat-effect">Alignment Turn</span>';
                     if (beat.injury_target) effectsHtml += '<span class="beat-effect">Injury</span>';
                     if (beat.title_change_setup) effectsHtml += '<span class="beat-effect">Title Setup</span>';
                     

@@ -11,7 +11,6 @@ from models.feud import Feud, FeudManager, FeudType, FeudStatus, FeudSegment
 from models.calendar import Calendar
 from models.faction import FactionManager, Faction
 from models.relationship_network import RelationshipNetwork, LockerRoomRelationship
-from models.alignment import TurnManager
 from persistence.database import Database
 import json
 from models.championship_hierarchy import championship_hierarchy, ChampionshipHierarchy
@@ -197,15 +196,6 @@ class DatabaseUniverseState:
     
 
     @property
-    def turn_manager(self) -> TurnManager:
-        """Get turn manager (lazy loaded from database)."""
-        if not hasattr(self, '_turn_manager') or self._turn_manager is None:
-            self._turn_manager = TurnManager()
-            turn_state = self.db.load_turn_state()
-            self._turn_manager.load_from_dict(turn_state)
-        return self._turn_manager
-
-    @property
     def feud_manager(self) -> FeudManager:
         """Get feud manager (lazy loaded from database)"""
         if self._feud_manager is None:
@@ -274,9 +264,6 @@ class DatabaseUniverseState:
             for feud in self.feud_manager.feuds:
                 self.db.save_feud(feud)
 
-            # Save all turns
-            if hasattr(self, '_turn_manager') and self._turn_manager:
-                self.db.save_turn_state(self._turn_manager.to_dict())
             
             # Save tag teams if loaded
             if hasattr(self, '_tag_team_manager') and self._tag_team_manager:
