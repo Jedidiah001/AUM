@@ -8,6 +8,7 @@ from models.wrestler import Wrestler, Injury
 from models.contract import Contract, CreativeControlLevel
 from models.championship import Championship, TitleReign
 from models.feud import Feud, FeudManager, FeudType, FeudStatus, FeudSegment
+from models.alignment import TurnManager
 from models.calendar import Calendar
 from models.faction import FactionManager, Faction
 from models.relationship_network import RelationshipNetwork, LockerRoomRelationship
@@ -30,6 +31,7 @@ class DatabaseUniverseState:
         self._championship_hierarchy = None
         self._championship_hierarchy_loaded = False
         self._contract_storyline_engine = None
+        self._turn_manager = None
         
         # BUGFIX #1: Load calendar index from saved game state
         game_state = database.get_game_state()
@@ -214,6 +216,21 @@ class DatabaseUniverseState:
         
         return self._feud_manager
     
+
+    @property
+    def turn_manager(self) -> TurnManager:
+        """Get turn manager (lazy loaded from database)."""
+        if self._turn_manager is None:
+            self._turn_manager = TurnManager()
+            state = self.db.load_turn_state()
+            self._turn_manager.load_from_dict(state)
+        return self._turn_manager
+
+    def save_turn_state(self):
+        """Save turn manager state to database."""
+        if self._turn_manager is not None:
+            self.db.save_turn_state(self._turn_manager.to_dict())
+
     def get_wrestler_by_id(self, wrestler_id: str) -> Optional[Wrestler]:
         """Get wrestler by ID from database"""
         w_dict = self.db.get_wrestler_by_id(wrestler_id)
@@ -264,7 +281,8 @@ class DatabaseUniverseState:
             for feud in self.feud_manager.feuds:
                 self.db.save_feud(feud)
 
-            
+            self.save_turn_state()
+
             # Save tag teams if loaded
             if hasattr(self, '_tag_team_manager') and self._tag_team_manager:
                 for team in self._tag_team_manager.teams:
