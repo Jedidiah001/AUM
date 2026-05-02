@@ -832,3 +832,55 @@
 })();
 
 </script>
+
+<hr class="my-4">
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header bg-info text-white"><h5 class="mb-0">TV Deals</h5></div>
+      <div class="card-body">
+        <form id="tvDealForm" class="row g-2">
+          <div class="col-6"><input class="form-control" name="promotion_name" placeholder="Promotion" required></div>
+          <div class="col-6"><input class="form-control" name="network_name" placeholder="Network" required></div>
+          <div class="col-4"><input class="form-control" name="network_tier" placeholder="Tier" required></div>
+          <div class="col-4"><input class="form-control" name="years" type="number" min="1" max="10" required></div>
+          <div class="col-4"><input class="form-control" name="annual_value" type="number" step="0.01" placeholder="Annual Value" required></div>
+          <div class="col-6"><input class="form-control" name="ppv_share_percent" type="number" step="0.01" placeholder="PPV %" required></div>
+          <div class="col-6"><input class="form-control" name="merch_share_percent" type="number" step="0.01" placeholder="Merch %" required></div>
+          <div class="col-6"><input class="form-control" name="start_date" type="date" required></div>
+          <div class="col-6"><input class="form-control" name="end_date" type="date" required></div>
+          <div class="col-12"><button class="btn btn-info">Save TV Deal</button></div>
+        </form>
+        <ul class="list-group mt-3" id="tvDealsList"></ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header bg-success text-white"><h5 class="mb-0">Merchandise</h5></div>
+      <div class="card-body">
+        <form id="merchForm" class="row g-2">
+          <div class="col-6"><input class="form-control" name="name" placeholder="Item name" required></div>
+          <div class="col-6"><input class="form-control" name="product_type" placeholder="Type" required></div>
+          <div class="col-4"><input class="form-control" name="sku" placeholder="SKU" required></div>
+          <div class="col-4"><input class="form-control" name="price" type="number" step="0.01" placeholder="Price" required></div>
+          <div class="col-4"><input class="form-control" name="unit_cost" type="number" step="0.01" placeholder="Cost" required></div>
+          <div class="col-6"><input class="form-control" name="inventory" type="number" placeholder="Inventory"></div>
+          <div class="col-6"><input class="form-control" name="popularity" type="number" min="1" max="100" placeholder="Popularity"></div>
+          <div class="col-12"><button class="btn btn-success">Save Merchandise</button></div>
+        </form>
+        <ul class="list-group mt-3" id="merchList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(async function(){
+  const byId=(id)=>document.getElementById(id);
+  async function loadTv(){const r=await fetch('/api/roster/tv-deals');const d=await r.json();byId('tvDealsList').innerHTML=d.deals.map(x=>`<li class="list-group-item">${x.network_name} (${x.years}y) - $${x.annual_value}/yr</li>`).join('')||'<li class="list-group-item text-muted">No deals</li>';}
+  async function loadMerch(){const r=await fetch('/api/roster/merchandise');const d=await r.json();byId('merchList').innerHTML=d.items.map(x=>`<li class="list-group-item">${x.name} [${x.sku}] profit/unit: $${x.profit_per_unit}</li>`).join('')||'<li class="list-group-item text-muted">No items</li>';}
+  byId('tvDealForm')?.addEventListener('submit', async(e)=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target).entries());await fetch('/api/roster/tv-deals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});e.target.reset();loadTv();});
+  byId('merchForm')?.addEventListener('submit', async(e)=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target).entries());await fetch('/api/roster/merchandise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});e.target.reset();loadMerch();});
+  loadTv();loadMerch();
+})();
+</script>
