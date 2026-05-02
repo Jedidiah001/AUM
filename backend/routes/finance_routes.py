@@ -584,11 +584,14 @@ def _apply_periodic_settlement(db, year, week):
         _post_ledger_entry(cursor, year, week, 'merch_sales', revenue, 'credit', f"merch:{item['id']}", f"units={sold_units}")
         _post_ledger_entry(cursor, year, week, 'merch_cogs', cogs, 'debit', f"merch:{item['id']}", f"units={sold_units}")
 
-    ppv_shows = _fetch_all(
-        cursor,
-        "SELECT id, total_revenue FROM shows WHERE year = ? AND week = ? AND (show_type LIKE '%ppv%' OR show_type IN ('major_ppv','minor_ppv'))",
-        (year, week),
-    )
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shows'")
+    ppv_shows = []
+    if cursor.fetchone():
+        ppv_shows = _fetch_all(
+            cursor,
+            "SELECT id, total_revenue FROM shows WHERE year = ? AND week = ? AND (show_type LIKE '%ppv%' OR show_type IN ('major_ppv','minor_ppv'))",
+            (year, week),
+        )
     ppv_total = sum(int(float(s.get('total_revenue') or 0)) for s in ppv_shows)
     ppv_share = int(ppv_total * 0.05)
     if ppv_share > 0:
