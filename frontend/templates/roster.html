@@ -130,6 +130,23 @@
     </div>
 </div>
 
+
+<!-- Turn Booking Modal -->
+<div class="modal fade" id="turnModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white"><h5 class="modal-title">Book Alignment Turn</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="turnWrestlerId">
+        <label class="form-label">New Alignment</label><select id="turnNewAlignment" class="form-select mb-2"><option>Face</option><option>Heel</option><option>Tweener</option></select>
+        <label class="form-label">Context</label><select id="turnContext" class="form-select mb-2"><option value="betrayal">Betrayal</option><option value="corruption">Corruption</option><option value="redemption">Redemption</option><option value="transition">Transition</option></select>
+        <label class="form-label">Feud (optional)</label><select id="turnFeudId" class="form-select"><option value="">No feud</option></select>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger" onclick="createTurnFromRoster()">Create Turn</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- Roster Table -->
 <div class="row">
     <div class="col-md-12">
@@ -374,9 +391,14 @@
                     <td>${injuryCell}</td>
                     <td>${contractBadge}</td>
                     <td>
-                        <button class="btn btn-sm btn-info wrestler-detail-btn" data-wrestler-id="${w.id}">
-                            <i class="bi bi-eye"></i>
-                        </button>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Wrestler actions">
+                            <button class="btn btn-info wrestler-detail-btn" data-wrestler-id="${w.id}" title="View details">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-danger wrestler-turn-btn" data-wrestler-id="${w.id}" title="Book alignment turn">
+                                <i class="bi bi-lightning-charge"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `);
@@ -389,6 +411,12 @@
             btn.addEventListener('click', function() {
                 const wrestlerId = this.getAttribute('data-wrestler-id');
                 showWrestlerDetail(wrestlerId);
+            });
+        });
+        document.querySelectorAll('.wrestler-turn-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const wrestlerId = this.getAttribute('data-wrestler-id');
+                openTurnModal(wrestlerId);
             });
         });
     }
@@ -656,8 +684,8 @@
                             <button class="btn btn-sm btn-outline-success" onclick="holdMeeting('${wrestler.id}', 'push')">
                                 <i class="bi bi-graph-up-arrow"></i> Promise Push
                             </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="holdMeeting('${wrestler.id}', 'salary')">
-                                <i class="bi bi-cash"></i> Salary Raise
+                            <button class="btn btn-sm btn-outline-danger" onclick="openTurnModal('${wrestler.id}')">
+                                <i class="bi bi-lightning-charge"></i> Book Turn
                             </button>
                             ${wrestler.stats.morale < 30 ? `
                             <button class="btn btn-sm btn-outline-danger" onclick="respondReleaseDemand('${wrestler.id}')">
@@ -825,6 +853,8 @@
     window.loadRosterData = loadRosterData;
     window.loadSummaryStats = loadSummaryStats;
     window.showWrestlerDetail = showWrestlerDetail;
+    window.openTurnModal = openTurnModal;
+    window.createTurnFromRoster = createTurnFromRoster;
 
     function setupFilterListeners() {
         document.querySelectorAll('.roster-filter').forEach(filter => {
@@ -843,6 +873,37 @@
         document.addEventListener('DOMContentLoaded', init);
     } else {
         setTimeout(init, 0);
+    }
+
+    async function openTurnModal(wrestlerId) {
+        document.getElementById('turnWrestlerId').value = wrestlerId;
+        const feudSel = document.getElementById('turnFeudId');
+        feudSel.innerHTML = '<option value="">No feud</option>';
+        const resp = await fetch(`/api/turns/roster-context/${wrestlerId}`);
+        if (resp.ok) {
+            const ctx = await resp.json();
+            for (const feud of (ctx.active_feuds || [])) {
+                feudSel.innerHTML += `<option value="${feud.id}">${feud.participant_names.join(' vs ')} (${feud.intensity_level})</option>`;
+            }
+        }
+        new bootstrap.Modal(document.getElementById('turnModal')).show();
+    }
+
+    async function createTurnFromRoster() {
+        const wrestlerId = document.getElementById('turnWrestlerId').value;
+        const body = {
+            wrestler_id: wrestlerId,
+            new_alignment: document.getElementById('turnNewAlignment').value,
+            context: document.getElementById('turnContext').value,
+            feud_id: document.getElementById('turnFeudId').value || null,
+            auto_execute: true
+        };
+        const resp = await fetch('/api/turns/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        const data = await resp.json();
+        if (!resp.ok) { alert(data.error || 'Failed to create turn'); return; }
+        alert(`Turn completed for ${data.turn.wrestler_name}. Alignment is now ${data.turn.new_alignment}.`);
+        bootstrap.Modal.getInstance(document.getElementById('turnModal')).hide();
+        loadRosterData();
     }
 
 })();
