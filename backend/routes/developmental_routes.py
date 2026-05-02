@@ -4,6 +4,8 @@ Handles call-ups, roster management, and developmental championship.
 """
 
 from flask import Blueprint, jsonify, request, current_app
+import random
+from datetime import datetime
 
 developmental_bp = Blueprint('developmental', __name__)
 
@@ -488,6 +490,118 @@ def api_crown_nexus_champion():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@developmental_bp.route('/api/developmental/championship/book-match', methods=['POST'])
+def api_book_nexus_championship_match():
+    """Book and simulate a Nexus match with optional title stakes."""
+    try:
+        data = request.get_json() or {}
+        wrestler1_id = data.get('wrestler1_id')
+        wrestler2_id = data.get('wrestler2_id')
+        is_title_match = bool(data.get('is_title_match', False))
+        winner_id = data.get('winner_id')
+        finish_type = (data.get('finish_type') or 'pinfall').strip().lower()
+
+        valid_finishes = {'pinfall', 'submission', 'dq', 'countout', 'rollup', 'ref_stoppage'}
+        if finish_type not in valid_finishes:
+            return jsonify({'success': False, 'error': f'Invalid finish_type: {finish_type}'}), 400
+
+        if not wrestler1_id or not wrestler2_id:
+            return jsonify({'success': False, 'error': 'wrestler1_id and wrestler2_id are required'}), 400
+        if wrestler1_id == wrestler2_id:
+            return jsonify({'success': False, 'error': 'Cannot book a wrestler against themselves'}), 400
+        if winner_id and winner_id not in {wrestler1_id, wrestler2_id}:
+            return jsonify({'success': False, 'error': 'winner_id must match one of the selected wrestlers'}), 400
+
+        dev_manager = get_dev_manager()
+        universe = get_universe()
+        database = current_app.config.get('DATABASE')
+        if not dev_manager or not universe or not database:
+            return jsonify({'success': False, 'error': 'Developmental system not initialized'}), 500
+
+        entry1 = dev_manager.get_entry(wrestler1_id)
+        entry2 = dev_manager.get_entry(wrestler2_id)
+        if not entry1 or not entry2:
+            return jsonify({'success': False, 'error': 'Both wrestlers must be on the developmental roster'}), 400
+
+        if winner_id == wrestler1_id:
+            winner_entry, loser_entry = entry1, entry2
+        elif winner_id == wrestler2_id:
+            winner_entry, loser_entry = entry2, entry1
+        else:
+            winner_entry = random.choice([entry1, entry2])
+            loser_entry = entry2 if winner_entry is entry1 else entry1
+
+        base_quality = (entry1.developmental_rating + entry2.developmental_rating) / 2
+        match_rating = int(max(40, min(100, base_quality + random.randint(-10, 15))))
+        crowd_reaction = int(max(35, min(100, base_quality + random.randint(-12, 18))))
+
+        entry1.update_performance(match_rating, crowd_reaction)
+        entry2.update_performance(match_rating, crowd_reaction)
+
+        champ = dev_manager.nexus_championship
+        title_change = False
+        current_year = getattr(universe, 'current_year', 2024)
+        current_week = getattr(universe, 'current_week', 1)
+
+        if is_title_match:
+            title_change = bool(champ.current_holder_id and winner_entry.wrestler_id != champ.current_holder_id)
+
+            if champ.current_holder_id == winner_entry.wrestler_id:
+                champ.defense_count += 1
+                champ.days_held += 7
+            else:
+                champ.current_holder_id = winner_entry.wrestler_id
+                champ.current_holder_name = winner_entry.wrestler_name
+                champ.won_date_year = current_year
+                champ.won_date_week = current_week
+                champ.days_held = 0
+                champ.defense_count = 0
+                champ.history.append({
+                    'wrestler_id': winner_entry.wrestler_id,
+                    'wrestler_name': winner_entry.wrestler_name,
+                    'won_date_year': current_year,
+                    'won_date_week': current_week,
+                    'days_held': 0,
+                    'defense_count': 0
+                })
+
+        cursor = database.conn.cursor()
+        cursor.execute('''
+            INSERT INTO nexus_championship_matches (
+                match_date_year, match_date_week, wrestler1_id, wrestler1_name,
+                wrestler2_id, wrestler2_name, winner_id, winner_name,
+                was_title_match, title_changed, match_quality, notes, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            current_year, current_week,
+            entry1.wrestler_id, entry1.wrestler_name,
+            entry2.wrestler_id, entry2.wrestler_name,
+            winner_entry.wrestler_id, winner_entry.wrestler_name,
+            1 if is_title_match else 0,
+            1 if title_change else 0,
+            match_rating,
+            f'Finish: {finish_type}',
+            datetime.now().isoformat(),
+        ))
+        database.conn.commit()
+
+        return jsonify({
+            'success': True,
+            'winner_id': winner_entry.wrestler_id,
+            'winner_name': winner_entry.wrestler_name,
+            'loser_id': loser_entry.wrestler_id,
+            'loser_name': loser_entry.wrestler_name,
+            'finish_type': finish_type,
+            'match_rating': match_rating,
+            'crowd_reaction': crowd_reaction,
+            'is_title_match': is_title_match,
+            'title_change': title_change,
+            'championship': champ.to_dict(),
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @developmental_bp.route('/api/developmental/championship/defense', methods=['POST'])
