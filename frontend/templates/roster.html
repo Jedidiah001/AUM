@@ -898,12 +898,15 @@
             wrestler_id: wrestlerId,
             new_alignment: document.getElementById('turnNewAlignment').value,
             context: document.getElementById('turnContext').value,
-            feud_id: document.getElementById('turnFeudId').value || null
+            feud_id: document.getElementById('turnFeudId').value || null,
+            auto_execute: true
         };
         const resp = await fetch('/api/turns/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         const data = await resp.json();
         if (!resp.ok) { alert(data.error || 'Failed to create turn'); return; }
-        alert(`Turn created for ${data.turn.wrestler_name}. Use booking to simulate segments.`);
+        alert(data.auto_executed
+            ? `Alignment turn applied for ${data.turn.wrestler_name}.`
+            : `Turn created for ${data.turn.wrestler_name}. Use booking to simulate segments.`);
         bootstrap.Modal.getInstance(document.getElementById('turnModal')).hide();
     }
 
@@ -929,12 +932,15 @@
             wrestler_id: wrestlerId,
             new_alignment: document.getElementById('turnNewAlignment').value,
             context: document.getElementById('turnContext').value,
-            feud_id: document.getElementById('turnFeudId').value || null
+            feud_id: document.getElementById('turnFeudId').value || null,
+            auto_execute: true
         };
         const resp = await fetch('/api/turns/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         const data = await resp.json();
         if (!resp.ok) { alert(data.error || 'Failed to create turn'); return; }
-        alert(`Turn created for ${data.turn.wrestler_name}. Use booking to simulate segments.`);
+        alert(data.auto_executed
+            ? `Alignment turn applied for ${data.turn.wrestler_name}.`
+            : `Turn created for ${data.turn.wrestler_name}. Use booking to simulate segments.`);
         bootstrap.Modal.getInstance(document.getElementById('turnModal')).hide();
     }
 
