@@ -488,6 +488,23 @@
                     <label class="form-check-label" for="nexusMatchIsTitle">Make this a Title Match</label>
                     <small class="form-text text-muted d-block">If checked, the winner becomes/becomes new champion</small>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label">Choose Winner (optional)</label>
+                    <select class="form-select" id="nexusMatchWinner">
+                        <option value="">-- Random Winner --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">How Winner Wins</label>
+                    <select class="form-select" id="nexusMatchFinishType">
+                        <option value="pinfall">Pinfall</option>
+                        <option value="submission">Submission</option>
+                        <option value="dq">Disqualification</option>
+                        <option value="countout">Countout</option>
+                        <option value="rollup">Roll-up</option>
+                        <option value="ref_stoppage">Referee Stoppage</option>
+                    </select>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -791,12 +808,15 @@ async function loadDevWrestlersForMatchBooking() {
         
         const select1 = document.getElementById('nexusMatchWrestler1');
         const select2 = document.getElementById('nexusMatchWrestler2');
+        const winnerSelect = document.getElementById('nexusMatchWinner');
         
         const options = '<option value="">-- Select Wrestler --</option>' + 
             wrestlers.map(w => `<option value="${w.wrestler_id}" data-name="${w.wrestler_name}">${w.wrestler_name} (Rating: ${w.developmental_rating})</option>`).join('');
         
         select1.innerHTML = options;
         select2.innerHTML = options;
+        winnerSelect.innerHTML = '<option value="">-- Random Winner --</option>' +
+            wrestlers.map(w => `<option value="${w.wrestler_id}">${w.wrestler_name}</option>`).join('');
         
         // Clear previous selections
         select1.value = '';
@@ -810,6 +830,8 @@ async function bookNexusMatch() {
     const wrestler1Id = document.getElementById('nexusMatchWrestler1').value;
     const wrestler2Id = document.getElementById('nexusMatchWrestler2').value;
     const isTitleMatch = document.getElementById('nexusMatchIsTitle').checked;
+    const winnerId = document.getElementById('nexusMatchWinner').value;
+    const finishType = document.getElementById('nexusMatchFinishType').value;
     
     if (!wrestler1Id || !wrestler2Id) {
         alert('Please select both wrestlers');
@@ -828,14 +850,16 @@ async function bookNexusMatch() {
             body: JSON.stringify({
                 wrestler1_id: wrestler1Id,
                 wrestler2_id: wrestler2Id,
-                is_title_match: isTitleMatch
+                is_title_match: isTitleMatch,
+                winner_id: winnerId || null,
+                finish_type: finishType
             })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            alert(`✅ Match booked successfully!\n\nWinner: ${result.winner_name}\nMatch Rating: ${result.match_rating}/100\n${result.title_change ? '🏆 NEW CHAMPION!' : ''}`);
+            alert(`✅ Match booked successfully!\n\nWinner: ${result.winner_name}\nFinish: ${result.finish_type}\nMatch Rating: ${result.match_rating}/100\n${result.title_change ? '🏆 NEW CHAMPION!' : ''}`);
             bootstrap.Modal.getInstance(document.getElementById('bookNexusMatchModal')).hide();
             loadNexusChampionship();
             loadDevelopmentalRoster();
