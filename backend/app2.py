@@ -54,6 +54,12 @@ app = Flask(
     static_folder='../frontend/static'
 )
 
+
+@app.route('/turns')
+def turns_view():
+    """Betrayal & Turn System page."""
+    return render_template('betrayal_turn_system.html')
+
 from api.reign_goals_api import reign_goals_bp
 app.register_blueprint(reign_goals_bp)
 

@@ -307,8 +307,11 @@ def api_execute_turn(turn_id):
                 'error': 'Turn is already completed'
             }), 400
         
-        # Execute the turn
-        success = turn_manager.execute_turn_now(
+        # Execute the turn through booking engine
+        from simulation.turn_booking import TurnBookingEngine
+        feud_manager = getattr(universe, 'feud_manager', None)
+        engine = TurnBookingEngine(turn_manager, feud_manager)
+        success = engine.execute_turn_now(
             turn_id=turn_id,
             year=universe.current_year,
             week=universe.current_week,
