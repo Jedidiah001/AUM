@@ -586,11 +586,7 @@ def _apply_periodic_settlement(db, year, week):
 
     ppv_shows = _fetch_all(
         cursor,
-        """
-        SELECT show_id AS id, total_revenue
-        FROM show_history
-        WHERE year = ? AND week = ? AND (show_type LIKE '%ppv%' OR show_type IN ('major_ppv','minor_ppv'))
-        """,
+        "SELECT id, total_revenue FROM shows WHERE year = ? AND week = ? AND (show_type LIKE '%ppv%' OR show_type IN ('major_ppv','minor_ppv'))",
         (year, week),
     )
     ppv_total = sum(int(float(s.get('total_revenue') or 0)) for s in ppv_shows)
