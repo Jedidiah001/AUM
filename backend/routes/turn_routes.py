@@ -81,6 +81,7 @@ def api_create_turn():
             old_alignment=old_alignment,
             new_alignment=new_alignment,
             crowd_reaction=crowd_reaction,
+            wrestler_popularity=wrestler.popularity,
             wrestler_popularity=wrestler.stats.popularity,
             is_successful=True,
         )

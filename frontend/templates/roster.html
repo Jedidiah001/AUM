@@ -901,6 +901,19 @@
             feud_id: document.getElementById('turnFeudId').value || null,
             auto_execute: true
         };
+        let resp;
+        try {
+            resp = await fetch('/api/turns/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+            const contentType = resp.headers.get('content-type') || '';
+            const data = contentType.includes('application/json') ? await resp.json() : { error: await resp.text() };
+            if (!resp.ok) { alert(data.error || 'Failed to create turn'); return; }
+        
+            alert(data.auto_executed
+                ? `Alignment turn applied for ${data.turn.wrestler_name}.`
+                : `Turn created for ${data.turn.wrestler_name}. Use booking to simulate segments.`);
+            bootstrap.Modal.getInstance(document.getElementById('turnModal')).hide();
+        } catch (err) {
+            alert('Failed to create turn: ' + (err?.message || 'Unknown error'));
         const resp = await fetch('/api/turns/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         const data = await resp.json();
         if (!resp.ok) { alert(data.error || 'Failed to create turn'); return; }
@@ -923,9 +936,9 @@
                 feudSel.innerHTML += `<option value="${feud.id}">${feud.participant_names.join(' vs ')} (${feud.intensity_level})</option>`;
             }
         }
-        new bootstrap.Modal(document.getElementById('turnModal')).show();
     }
 
+})();
     async function createTurnFromRoster() {
         const wrestlerId = document.getElementById('turnWrestlerId').value;
         const body = {
@@ -944,6 +957,4 @@
         bootstrap.Modal.getInstance(document.getElementById('turnModal')).hide();
     }
 
-    window.openTurnModal = openTurnModal;
-    window.createTurnFromRoster = createTurnFromRoster;
 </script>
