@@ -3580,7 +3580,7 @@ class Database:
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_morale_seeds_status ON morale_storyline_seeds(status)')
 
         # Office alerts (Step 263)
-        cursor.execute('''
+        cursor.executescript('''
             CREATE TABLE IF NOT EXISTS office_alerts (
                 alert_id TEXT PRIMARY KEY,
                 priority TEXT NOT NULL,
