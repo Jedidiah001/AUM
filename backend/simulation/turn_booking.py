@@ -20,7 +20,7 @@ class TurnBookingEngine:
     Integrates with feuds, storylines, and roster management.
     """
     
-    def __init__(self, turn_manager: TurnManager, feud_manager: FeudManager):
+    def __init__(self, turn_manager: TurnManager, feud_manager: Optional[FeudManager]):
         self.turn_manager = turn_manager
         self.feud_manager = feud_manager
     
@@ -109,6 +109,9 @@ class TurnBookingEngine:
         """Create or intensify feud from a betrayal"""
         for victim in victims:
             # Check if feud already exists
+            if self.feud_manager is None:
+                return
+
             existing = self.feud_manager.get_feud_between(betrayer.id, victim.id)
             
             if existing:
