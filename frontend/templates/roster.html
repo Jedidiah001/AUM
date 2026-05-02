@@ -687,8 +687,8 @@
                             <button class="btn btn-sm btn-outline-success" onclick="holdMeeting('${wrestler.id}', 'push')">
                                 <i class="bi bi-graph-up-arrow"></i> Promise Push
                             </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="holdMeeting('${wrestler.id}', 'salary')">
-                                <i class="bi bi-cash"></i> Salary Raise
+                            <button class="btn btn-sm btn-outline-danger" onclick="openTurnModal('${wrestler.id}')">
+                                <i class="bi bi-lightning-charge"></i> Book Turn
                             </button>
                             ${wrestler.stats.morale < 30 ? `
                             <button class="btn btn-sm btn-outline-danger" onclick="respondReleaseDemand('${wrestler.id}')">
