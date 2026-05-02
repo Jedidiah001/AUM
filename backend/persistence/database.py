@@ -359,6 +359,12 @@ class Database:
         # ========================================================================
         # STEP 125: Contract Storyline Tables
         # ========================================================================
+        
+        # Turn System Tables (Alignment/Turn Tracking)
+        self._create_turn_tables()
+        # ========================================================================
+        # STEP 125: Contract Storyline Tables
+        # ========================================================================
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS contract_storylines (
@@ -3870,3 +3876,192 @@ class Database:
         cursor.execute('DELETE FROM show_drafts WHERE show_id = ?', (show_id,))
         self.conn.commit()
         return cursor.rowcount > 0
+
+    # ========================================================================
+    # Turn System Operations (Alignment/Turn Tracking)
+    # ========================================================================
+
+    def _create_turn_tables(self):
+        """Create tables for the alignment/turn system"""
+        cursor = self.conn.cursor()
+
+        # Wrestler Turns Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS wrestler_turns (
+                id TEXT PRIMARY KEY,
+                wrestler_id TEXT NOT NULL,
+                wrestler_name TEXT NOT NULL,
+                turn_type TEXT NOT NULL,
+                old_alignment TEXT NOT NULL,
+                new_alignment TEXT NOT NULL,
+                start_year INTEGER NOT NULL,
+                start_week INTEGER NOT NULL,
+                start_show_id TEXT,
+                feud_id TEXT,
+                storyline_id TEXT,
+                target_wrestler_ids TEXT,  -- JSON array
+                target_wrestler_names TEXT,  -- JSON array
+                phase TEXT NOT NULL,
+                turn_progress INTEGER NOT NULL DEFAULT 0,
+                execution_year INTEGER,
+                execution_week INTEGER,
+                execution_show_id TEXT,
+                resolved_year INTEGER,
+                resolved_week INTEGER,
+                popularity_change INTEGER DEFAULT 0,
+                final_crowd_reaction TEXT,
+                is_completed INTEGER NOT NULL DEFAULT 0,
+                is_successful INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (wrestler_id) REFERENCES wrestlers(id),
+                FOREIGN KEY (feud_id) REFERENCES feuds(id)
+            );
+        ''')
+
+        # Turn Segments Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS turn_segments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turn_id TEXT NOT NULL,
+                segment_id TEXT NOT NULL,
+                show_id TEXT NOT NULL,
+                show_name TEXT NOT NULL,
+                year INTEGER NOT NULL,
+                week INTEGER NOT NULL,
+                segment_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                crowd_reaction TEXT NOT NULL,
+                crowd_heat_level INTEGER NOT NULL,
+                turn_progress INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (turn_id) REFERENCES wrestler_turns(id)
+            );
+        ''')
+
+        # Create indexes
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_turns_wrestler ON wrestler_turns(wrestler_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_turns_phase ON wrestler_turns(phase)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_turns_completed ON wrestler_turns(is_completed)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_turn_segments_turn ON turn_segments(turn_id)')
+
+        self.conn.commit()
+        print("✅ Created turn system tables")
+
+    def save_turn_state(self, turn_data: Dict[str, Any]):
+        """Save turn manager state"""
+        cursor = self.conn.cursor()
+        now = datetime.now().isoformat()
+
+        # Clear existing turns
+        cursor.execute('DELETE FROM turn_segments')
+        cursor.execute('DELETE FROM wrestler_turns')
+
+        # Save all turns
+        for turn in turn_data.get('turns', []):
+            cursor.execute('''
+                INSERT INTO wrestler_turns (
+                    id, wrestler_id, wrestler_name, turn_type,
+                    old_alignment, new_alignment,
+                    start_year, start_week, start_show_id,
+                    feud_id, storyline_id,
+                    target_wrestler_ids, target_wrestler_names,
+                    phase, turn_progress,
+                    execution_year, execution_week, execution_show_id,
+                    resolved_year, resolved_week,
+                    popularity_change, final_crowd_reaction,
+                    is_completed, is_successful,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                turn['id'],
+                turn['wrestler_id'],
+                turn['wrestler_name'],
+                turn['turn_type'],
+                turn['old_alignment'],
+                turn['new_alignment'],
+                turn['start_year'],
+                turn['start_week'],
+                turn.get('start_show_id'),
+                turn.get('feud_id'),
+                turn.get('storyline_id'),
+                json.dumps(turn.get('target_wrestler_ids', [])),
+                json.dumps(turn.get('target_wrestler_names', [])),
+                turn['phase'],
+                turn.get('turn_progress', 0),
+                turn.get('execution_year'),
+                turn.get('execution_week'),
+                turn.get('execution_show_id'),
+                turn.get('resolved_year'),
+                turn.get('resolved_week'),
+                turn.get('popularity_change', 0),
+                turn.get('final_crowd_reaction'),
+                1 if turn.get('is_completed', False) else 0,
+                1 if turn.get('is_successful', True) else 0,
+                now, now
+            ))
+
+            # Save segments
+            for segment in turn.get('segments', []):
+                cursor.execute('''
+                    INSERT INTO turn_segments (
+                        turn_id, segment_id, show_id, show_name,
+                        year, week, segment_type, description,
+                        crowd_reaction, crowd_heat_level, turn_progress,
+                        created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    turn['id'],
+                    segment['segment_id'],
+                    segment['show_id'],
+                    segment['show_name'],
+                    segment['year'],
+                    segment['week'],
+                    segment['segment_type'],
+                    segment['description'],
+                    segment['crowd_reaction'],
+                    segment['crowd_heat_level'],
+                    segment.get('turn_progress', 0),
+                    now
+                ))
+
+        self.conn.commit()
+
+    def load_turn_state(self) -> Dict[str, Any]:
+        """Load turn manager state"""
+        cursor = self.conn.cursor()
+
+        cursor.execute('SELECT * FROM wrestler_turns ORDER BY start_year, start_week')
+        rows = cursor.fetchall()
+
+        turns = []
+        for row in rows:
+            turn_dict = dict(row)
+
+            # Parse JSON fields
+            turn_dict['target_wrestler_ids'] = json.loads(turn_dict['target_wrestler_ids'] or '[]')
+            turn_dict['target_wrestler_names'] = json.loads(turn_dict['target_wrestler_names'] or '[]')
+
+            # Convert boolean integers
+            turn_dict['is_completed'] = bool(turn_dict['is_completed'])
+            turn_dict['is_successful'] = bool(turn_dict['is_successful'])
+
+            # Get segments
+            cursor.execute('SELECT * FROM turn_segments WHERE turn_id = ? ORDER BY created_at', (turn_dict['id'],))
+            turn_dict['segments'] = [dict(seg) for seg in cursor.fetchall()]
+
+            # Remove database fields
+            if 'created_at' in turn_dict:
+                del turn_dict['created_at']
+            if 'updated_at' in turn_dict:
+                del turn_dict['updated_at']
+
+            turns.append(turn_dict)
+
+        return {
+            'total_turns': len(turns),
+            'active_turns': len([t for t in turns if not t['is_completed']]),
+            'completed_turns': len([t for t in turns if t['is_completed']]),
+            'successful_turns': len([t for t in turns if t['is_completed'] and t['is_successful']]),
+            'turns': turns
+        }
