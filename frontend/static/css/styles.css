@@ -364,15 +364,15 @@
     transform: scale(1.02);
 }
 
-.competitor-box.face {
+.competitor-box {
     border: 2px solid #28a745;
 }
 
-.competitor-box.heel {
+.competitor-box-alt-a {
     border: 2px solid #dc3545;
 }
 
-.competitor-box.tweener {
+.competitor-box-alt-b {
     border: 2px solid #6c757d;
 }
 

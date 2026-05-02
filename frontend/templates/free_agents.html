@@ -2039,8 +2039,7 @@
             const col = document.createElement('div');
             col.className = 'col-lg-4 col-md-6';
             
-            const alignmentClass = (fa.alignment || '').toLowerCase();
-            const moodClass = `mood-${fa.mood || 'patient'}`;
+                        const moodClass = `mood-${fa.mood || 'patient'}`;
             
             // Safely access nested properties
             const attributes = fa.attributes || {};
@@ -2088,7 +2087,7 @@
                     <div class="free-agent-body">
                         <div class="badge-container">
                             <span class="badge bg-secondary">${escapeHtml(fa.source_label || fa.source || 'Unknown')}</span>
-                            <span class="badge ${alignmentClass === 'face' ? 'bg-success' : alignmentClass === 'heel' ? 'bg-danger' : 'bg-warning'}">${escapeHtml(fa.alignment || 'Neutral')}</span>
+                            
                             <span class="badge ${moodClass}">${escapeHtml(fa.mood_label || fa.mood || 'Unknown')}</span>
                             ${fa.is_legend ? '<span class="badge legend-badge">LEGEND</span>' : ''}
                             ${fa.is_prospect ? '<span class="badge prospect-badge">PROSPECT</span>' : ''}
@@ -2235,7 +2234,7 @@
                             <tbody>
                                 <tr><td>Age:</td><td>${fa.age || 'Unknown'}</td></tr>
                                 <tr><td>Gender:</td><td>${escapeHtml(fa.gender || 'Unknown')}</td></tr>
-                                <tr><td>Alignment:</td><td>${escapeHtml(fa.alignment || 'Unknown')}</td></tr>
+                                
                                 <tr><td>Role:</td><td>${escapeHtml(fa.role || 'Unknown')}</td></tr>
                                 <tr><td>Experience:</td><td>${fa.years_experience || 0} years</td></tr>
                                 <tr><td>Origin:</td><td>${escapeHtml(fa.origin_region || 'Unknown')}</td></tr>
@@ -4208,7 +4207,7 @@ function buildLegendCard(legend) {
                     <span class="badge bg-${color}">${statusLabel}</span>
                 </div>
                 <div class="text-muted small mb-2">
-                    Age ${legend.age} · ${legend.gender} · ${legend.alignment}
+                    Age ${legend.age} · ${legend.gender}
                     ${legend.is_major_superstar ? ' · <span class="text-warning">⭐ Major Star</span>' : ''}
                 </div>
                 <div class="mb-2">

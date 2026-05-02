@@ -109,19 +109,17 @@
                                 </div>
 
                                 <div class="col-md-4 mb-3">
-                                    <label for="cawAlignment" class="form-label">
-                                        <i class="bi bi-heart"></i> Alignment *
+                                    <label for="cawPersona" class="form-label">
+                                        <i class="bi bi-heart"></i> Persona *
                                     </label>
                                     <select 
                                         class="form-select" 
-                                        id="cawAlignment" 
-                                        name="alignment"
+                                        id="cawPersona" 
+                                        name="persona"
                                         required
                                         onchange="updatePreview()"
                                     >
-                                        <option value="Face">Face (Hero)</option>
-                                        <option value="Heel">Heel (Villain)</option>
-                                        <option value="Tweener">Tweener (Neutral)</option>
+                                        <option value="Standard">Standard</option>
                                     </select>
                                 </div>
 
@@ -450,7 +448,7 @@
                         
                         <div class="preview-badges mt-3">
                             <span class="badge preview-badge" id="previewBrand">ROC Alpha</span>
-                            <span class="badge preview-badge" id="previewAlignment">Face</span>
+                            
                             <span class="badge preview-badge" id="previewRole">Midcard</span>
                         </div>
 
@@ -603,7 +601,7 @@
         document.getElementById('previewName').textContent = formData.name || 'Wrestler Name';
         document.getElementById('previewMeta').textContent = `Age ${formData.age} • ${formData.gender}`;
         document.getElementById('previewBrand').textContent = formData.primary_brand;
-        document.getElementById('previewAlignment').textContent = formData.alignment;
+        
         document.getElementById('previewRole').textContent = formData.role;
         
         // Update stats
@@ -664,8 +662,7 @@
             name: document.getElementById('cawName').value,
             age: parseInt(document.getElementById('cawAge').value),
             gender: document.getElementById('cawGender').value,
-            alignment: document.getElementById('cawAlignment').value,
-            role: document.getElementById('cawRole').value,
+                        role: document.getElementById('cawRole').value,
             primary_brand: document.getElementById('cawBrand').value,
             brawling: parseInt(document.getElementById('cawBrawling').value),
             technical: parseInt(document.getElementById('cawTechnical').value),
@@ -739,11 +736,7 @@
             document.getElementById('cawRole').value = preset.role;
         }
         
-        // Apply alignment if specified
-        if (preset.alignment) {
-            document.getElementById('cawAlignment').value = preset.alignment;
-        }
-        
+                
         updatePreview();
         recalculateSalary();
         

@@ -1926,8 +1926,7 @@
         const init  = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
         const mood  = fa.mood || 'patient';
         const moodLabel = fa.mood_label || capitalize(mood);
-        const alignClass = { face:'success', heel:'danger', neutral:'secondary' }[(fa.alignment||'').toLowerCase()] || 'secondary';
-
+        
         document.getElementById('headerFaName').textContent = name;
         document.getElementById('headerRound').textContent  = `Round ${currentRound} of ${maxRounds}`;
 
@@ -1936,7 +1935,7 @@
             <div class="fa-name">${escapeHtml(name)}</div>
             <div class="fa-meta">${fa.age || '?'} yrs · ${escapeHtml(fa.gender || '')} · ${escapeHtml(fa.role || '')}</div>
             <div class="fa-badges">
-                <span class="badge bg-${alignClass}">${escapeHtml(fa.alignment || 'Neutral')}</span>
+                
                 <span class="mood-badge mood-${mood}">${moodLabel}</span>
                 ${fa.is_legend ? '<span class="badge" style="background:#f0b429;color:#000;">LEGEND</span>' : ''}
                 ${fa.is_prospect ? '<span class="badge bg-success">PROSPECT</span>' : ''}

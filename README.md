@@ -25,8 +25,3 @@ python -m unittest backend.test_regressions
 - Follow repository-level `AGENTS.md` instructions when present.
 - Use `rg` for fast file discovery in this codebase.
 - Keep changes scoped and documented in commits.
-
-## Alignment Turn System
-- Roster page now supports booking face/heel/tweener turns from wrestler management modal.
-- API endpoints: `/api/turns`, `/api/turns/create`, `/api/turns/<turn_id>/simulate-segment`, `/api/turns/roster-context/<wrestler_id>`.
-- Data persists in SQLite `wrestler_turns` and `turn_segments` tables.
