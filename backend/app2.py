@@ -54,6 +54,7 @@ app = Flask(
     static_folder='../frontend/static'
 )
 
+
 from api.reign_goals_api import reign_goals_bp
 app.register_blueprint(reign_goals_bp)
 

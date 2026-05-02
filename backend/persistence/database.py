@@ -47,6 +47,15 @@ class Database:
     def initialize_database(self):
         """Create all tables and indexes"""
         cursor = self.conn.cursor()
+
+        def _ensure_column(column_name: str, ddl_suffix: str) -> None:
+            """Attempt to add a column for backward compatibility with older DB files."""
+            try:
+                cursor.execute(f'ALTER TABLE championships ADD COLUMN {column_name} {ddl_suffix}')
+                print(f"✅ Added {column_name} column")
+            except sqlite3.OperationalError:
+                # Column already exists or cannot be added on this schema version.
+                pass
         
         # Game State Table
         cursor.execute('''
@@ -136,42 +145,12 @@ class Database:
         ''')
 
         # For existing databases, add columns if they don't exist
-        try:
-            cursor.execute('ALTER TABLE championships ADD COLUMN defense_frequency_days INTEGER DEFAULT 30')
-            print("✅ Added defense_frequency_days column")
-        except:
-            pass  # Column already exists
-
-        try:
-            cursor.execute('ALTER TABLE championships ADD COLUMN min_annual_defenses INTEGER DEFAULT 12')
-            print("✅ Added min_annual_defenses column")
-        except:
-            pass  # Column already exists
-        
-        # BUGFIX #3: Add missing last_defense tracking columns
-        try:
-            cursor.execute('ALTER TABLE championships ADD COLUMN last_defense_year INTEGER')
-            print("✅ Added last_defense_year column")
-        except:
-            pass  # Column already exists
-        
-        try:
-            cursor.execute('ALTER TABLE championships ADD COLUMN last_defense_week INTEGER')
-            print("✅ Added last_defense_week column")
-        except:
-            pass  # Column already exists
-        
-        try:
-            cursor.execute('ALTER TABLE championships ADD COLUMN last_defense_show_id TEXT')
-            print("✅ Added last_defense_show_id column")
-        except:
-            pass  # Column already exists
-
-        try:
-            cursor.execute('ALTER TABLE championships ADD COLUMN total_defenses INTEGER DEFAULT 0')
-            print("✅ Added total_defenses column")
-        except:
-            pass  # Column already exists
+        _ensure_column('defense_frequency_days', 'INTEGER DEFAULT 30')
+        _ensure_column('min_annual_defenses', 'INTEGER DEFAULT 12')
+        _ensure_column('last_defense_year', 'INTEGER')
+        _ensure_column('last_defense_week', 'INTEGER')
+        _ensure_column('last_defense_show_id', 'TEXT')
+        _ensure_column('total_defenses', 'INTEGER DEFAULT 0')
         
         # Title Reigns Table
         cursor.execute('''
