@@ -10,6 +10,16 @@ def get_universe():
     return current_app.config['UNIVERSE']
 
 
+def _resolve_wrestler_popularity(wrestler):
+    """Return a safe popularity value regardless of wrestler data shape."""
+    stats = getattr(wrestler, 'stats', None)
+    if stats is not None and hasattr(stats, 'popularity'):
+        return stats.popularity
+    if hasattr(wrestler, 'popularity'):
+        return wrestler.popularity
+    return 50
+
+
 @turn_bp.route('/api/turns', methods=['GET'])
 def api_get_turns():
     universe = get_universe()
@@ -47,8 +57,11 @@ def api_create_turn():
     if not wrestler:
         return jsonify({'error': 'Wrestler not found'}), 404
 
-    new_alignment = Alignment(data.get('new_alignment'))
-    old_alignment = Alignment(wrestler.alignment)
+    try:
+        new_alignment = Alignment(data.get('new_alignment'))
+        old_alignment = Alignment(wrestler.alignment)
+    except (TypeError, ValueError) as exc:
+        return jsonify({'error': f'Invalid alignment data: {exc}'}), 400
     target_ids = data.get('target_wrestler_ids', [])
     targets = [universe.get_wrestler_by_id(tid) for tid in target_ids]
     target_names = [t.name for t in targets if t]
