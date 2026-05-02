@@ -216,7 +216,9 @@ from api.reign_goals_api import reign_goals_bp
 app.register_blueprint(reign_goals_bp)
 
 from routes.show_production_routes import show_production_bp
+from routes.roster_business_routes import roster_business_bp
 app.register_blueprint(show_production_bp)
+app.register_blueprint(roster_business_bp)
 
 # Register championship routes (legacy - keeping for compatibility)
 from routes.championship_routes import register_championship_routes
