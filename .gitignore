@@ -1,1 +1,10 @@
-Nothing should be ignored in this case, as only a source code file (`backend/persistence/database.py`) was modified and there are no build artifacts, dependencies, or temporary files in the changes.
+```
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Compiled Python files
+*.cpython-*.pyc
+```
