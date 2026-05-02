@@ -128,6 +128,25 @@ def _ensure_tables():
             duration_weeks INTEGER NOT NULL,
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS finance_ledger_entries (
+            entry_id TEXT PRIMARY KEY,
+            entry_year INTEGER NOT NULL,
+            entry_week INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            direction TEXT NOT NULL,
+            source_ref TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS finance_settlement_state (
+            id INTEGER PRIMARY KEY CHECK (id=1),
+            last_year INTEGER NOT NULL DEFAULT 1,
+            last_week INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL
+        );
     """)
     cursor.execute("PRAGMA table_info(finance_settings)")
     existing_cols = {row[1] for row in cursor.fetchall()}
@@ -501,6 +520,102 @@ def _risk_summary(balance, weekly_report, budget_rows):
     }
 
 
+def _post_ledger_entry(cursor, year, week, category, amount, direction, source_ref='', notes=''):
+    cursor.execute(
+        """
+        INSERT INTO finance_ledger_entries
+        (entry_id, entry_year, entry_week, category, amount, direction, source_ref, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            f'led_{uuid.uuid4().hex[:12]}',
+            year,
+            week,
+            category,
+            int(amount),
+            direction,
+            source_ref,
+            notes,
+            datetime.now().isoformat(),
+        ),
+    )
+
+
+def _apply_periodic_settlement(db, year, week):
+    cursor = db.conn.cursor()
+    cursor.execute(
+        "INSERT OR IGNORE INTO finance_settlement_state (id, last_year, last_week, updated_at) VALUES (1, 1, 0, ?)",
+        (datetime.now().isoformat(),),
+    )
+    state = cursor.execute("SELECT last_year, last_week FROM finance_settlement_state WHERE id = 1").fetchone()
+    if state and state['last_year'] == year and state['last_week'] == week:
+        return {'applied': False, 'net': 0}
+
+    current = db.get_game_state()
+    balance = int(current.get('balance', 0))
+    net = 0
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tv_deals'")
+    tv_rows = []
+    if cursor.fetchone():
+        tv_rows = _fetch_all(cursor, "SELECT id, network_name, annual_value, ppv_share_percent, years FROM tv_deals WHERE status = 'active'")
+    for deal in tv_rows:
+        weekly_base = int(float(deal['annual_value']) / 52)
+        production_cost = int(weekly_base * 0.18)
+        amortized_cost = int(float(deal['annual_value']) * 0.05 / max(1, int(deal['years']) * 52))
+        weekly_net = weekly_base - production_cost - amortized_cost
+        net += weekly_net
+        _post_ledger_entry(cursor, year, week, 'tv_rights_weekly', weekly_net, 'credit', f"tv:{deal['id']}", deal['network_name'])
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='merchandise_items'")
+    merch_rows = []
+    if cursor.fetchone():
+        merch_rows = _fetch_all(cursor, "SELECT id, name, price, unit_cost, inventory, popularity FROM merchandise_items WHERE is_deleted = 0")
+    demand_index = _economic_state(year, week)['merchandise_demand'] / 100.0
+    for item in merch_rows:
+        projected = int((item['popularity'] / 100.0) * demand_index * max(3, item['inventory'] * 0.08))
+        sold_units = max(0, min(int(item['inventory']), projected))
+        if sold_units <= 0:
+            continue
+        revenue = int(sold_units * float(item['price']))
+        cogs = int(sold_units * float(item['unit_cost']))
+        net += (revenue - cogs)
+        cursor.execute("UPDATE merchandise_items SET inventory = inventory - ? WHERE id = ?", (sold_units, item['id']))
+        _post_ledger_entry(cursor, year, week, 'merch_sales', revenue, 'credit', f"merch:{item['id']}", f"units={sold_units}")
+        _post_ledger_entry(cursor, year, week, 'merch_cogs', cogs, 'debit', f"merch:{item['id']}", f"units={sold_units}")
+
+    ppv_shows = _fetch_all(
+        cursor,
+        "SELECT id, total_revenue FROM shows WHERE year = ? AND week = ? AND (show_type LIKE '%ppv%' OR show_type IN ('major_ppv','minor_ppv'))",
+        (year, week),
+    )
+    ppv_total = sum(int(float(s.get('total_revenue') or 0)) for s in ppv_shows)
+    ppv_share = int(ppv_total * 0.05)
+    if ppv_share > 0:
+        net += ppv_share
+        _post_ledger_entry(cursor, year, week, 'ppv_distribution', ppv_share, 'credit', 'ppv:weekly', f"events={len(ppv_shows)}")
+
+    db.update_game_state(balance=balance + net)
+    cursor.execute(
+        "UPDATE finance_settlement_state SET last_year = ?, last_week = ?, updated_at = ? WHERE id = 1",
+        (year, week, datetime.now().isoformat()),
+    )
+    db.conn.commit()
+    return {'applied': True, 'net': net}
+
+
+def _ledger_report(cursor, year, week):
+    rows = _fetch_all(
+        cursor,
+        "SELECT * FROM finance_ledger_entries WHERE entry_year = ? AND entry_week = ? ORDER BY created_at DESC",
+        (year, week),
+    )
+    totals = {'credit': 0, 'debit': 0}
+    for row in rows:
+        totals[row['direction']] = totals.get(row['direction'], 0) + int(row['amount'])
+    return {'entries': rows[:100], 'totals': totals}
+
+
 def _dashboard_payload():
     _ensure_tables()
     db = get_database()
@@ -508,6 +623,8 @@ def _dashboard_payload():
     year, week, balance = _game_period(db)
     settings = _load_settings(db)
     economy = _economic_state(year, week)
+    settlement = _apply_periodic_settlement(db, year, week)
+    year, week, balance = _game_period(db)
 
     show_history = db.get_show_history(limit=120)
     cursor = db.conn.cursor()
@@ -534,6 +651,7 @@ def _dashboard_payload():
 
     budget_rows = _budget_status(settings, current_week)
     risk = _risk_summary(balance, current_week, budget_rows)
+    ledger = _ledger_report(cursor, year, week)
 
     revenue_streams = [
         {'category': key, 'amount': int(value)}
@@ -570,6 +688,8 @@ def _dashboard_payload():
         'merchandise': merch_summary,
         'capital': capital_rows,
         'difficulty': risk,
+        'settlement': settlement,
+        'ledger': ledger,
     }
 
 
